@@ -3,6 +3,7 @@ package org.dynadoc
 import aws.sdk.kotlin.runtime.auth.credentials.StaticCredentialsProvider
 import aws.sdk.kotlin.services.dynamodb.DynamoDbClient
 import aws.smithy.kotlin.runtime.net.url.Url
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
@@ -198,6 +199,41 @@ class DynamoDbDocumentStoreTests {
         assertDocument(document1, ids[0], "{\"abc\":\"def\"}", 1)
         assertDocument(document2, ids[1], null, 0)
         assertEquals(ids[1], exception.id)
+    }
+
+    //endregion
+
+    //region getDocuments
+
+    @Test
+    fun getDocuments_singleDocument() = runBlocking {
+        updateDocument("{\"abc\":\"def\"}", 0)
+
+        val documents: List<Document> = store.getDocuments(listOf(ids[0])).toList()
+
+        assertEquals(1, documents.size)
+        assertDocument(documents[0], ids[0], "{\"abc\":\"def\"}", 1)
+    }
+
+    @Test
+    fun getDocuments_multipleDocuments() = runBlocking {
+        updateDocument(ids[0], "{\"abc\":\"def\"}", 0)
+        updateDocument(ids[1], "{\"ghi\":\"jkl\"}", 0)
+
+        val documents: List<Document> = store.getDocuments(listOf(ids[0], ids[2], ids[0], ids[1])).toList()
+
+        assertEquals(4, documents.size)
+        assertDocument(documents[0], ids[0], "{\"abc\":\"def\"}", 1)
+        assertDocument(documents[1], ids[2], null, 0)
+        assertDocument(documents[2], ids[0], "{\"abc\":\"def\"}", 1)
+        assertDocument(documents[3], ids[1], "{\"ghi\":\"jkl\"}", 1)
+    }
+
+    @Test
+    fun getDocuments_noDocument() = runBlocking {
+        val documents: List<Document> = store.getDocuments(listOf()).toList()
+
+        assertEquals(0, documents.size)
     }
 
     //endregion

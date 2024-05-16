@@ -94,7 +94,7 @@ class DynamoDbDocumentStore(
         val request: BatchGetItemRequest = BatchGetItemRequest {
             requestItems = mapOf(
                 tableName to KeysAndAttributes {
-                    keys = ids.map(Table::getKeyAttributes)
+                    keys = idList.distinct().map(Table::getKeyAttributes)
                 }
             )
 
