@@ -13,9 +13,15 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
+import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.wait.strategy.Wait
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import java.util.*
 import java.util.stream.Stream
+import kotlin.random.asKotlinRandom
 
+@Testcontainers
 class DynamoDbDocumentStoreTests {
     private lateinit var ids: List<DocumentKey>
     private lateinit var store: DynamoDbDocumentStore
@@ -274,6 +280,19 @@ class DynamoDbDocumentStoreTests {
 
     private companion object Setup {
         lateinit var client: DynamoDbClient
+        var port: Int = Random().asKotlinRandom().nextInt(10000, 32000)
+
+        @JvmStatic
+        @Container
+        private val container = GenericContainer("amazon/dynamodb-local:latest").apply {
+            portBindings = listOf("$port:8000")
+            setCommand("-jar DynamoDBLocal.jar -sharedDb -inMemory")
+            workingDirectory = "/home/dynamodblocal"
+            waitingFor(Wait
+                .forHttp("/")
+                .forPort(8000)
+                .forStatusCode(400))
+        }
 
         @BeforeAll
         @JvmStatic
@@ -281,7 +300,7 @@ class DynamoDbDocumentStoreTests {
             client = DynamoDbClient.builder()
                 .apply {
                     this.config.apply {
-                        this.endpointUrl = Url.parse("http://localhost:8000")
+                        this.endpointUrl = Url.parse("http://localhost:$port")
                         this.credentialsProvider = StaticCredentialsProvider {
                             this.accessKeyId = "N/A"
                             this.secretAccessKey = "N/A"
@@ -290,6 +309,11 @@ class DynamoDbDocumentStoreTests {
                     }
                 }
                 .build()
+
+            require(container.isRunning()) { container.logs }
+            runBlocking {
+                DynamoDbDocumentStore(client, "tests").createTable()
+            }
         }
     }
 

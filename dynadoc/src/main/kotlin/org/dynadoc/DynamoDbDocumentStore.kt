@@ -129,7 +129,7 @@ class DynamoDbDocumentStore(
             .map(DynamoDbDocument::parse)
     }
 
-    suspend fun createTable(configure: CreateTableRequest.Builder.() -> Unit) {
+    suspend fun createTable(configure: CreateTableRequest.Builder.() -> Unit = { }) {
         val request: CreateTableRequest = CreateTableRequest {
             tableName = this@DynamoDbDocumentStore.tableName
             keySchema = listOf(
