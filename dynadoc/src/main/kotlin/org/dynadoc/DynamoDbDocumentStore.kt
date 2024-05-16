@@ -121,6 +121,44 @@ class DynamoDbDocumentStore(
 
         return result.flatMapConcat { it.asFlow() }
     }
+
+    fun runQuery(query: QueryRequest): Flow<Document> {
+        return client.queryPaginated(query)
+            .mapNotNull { response -> response.items }
+            .flatMapConcat { items -> items.asFlow() }
+            .map(DynamoDbDocument::parse)
+    }
+
+    suspend fun createTable(configure: CreateTableRequest.Builder.() -> Unit) {
+        val request: CreateTableRequest = CreateTableRequest {
+            tableName = this@DynamoDbDocumentStore.tableName
+            keySchema = listOf(
+                KeySchemaElement {
+                    attributeName = Table.PARTITION_KEY
+                    keyType = KeyType.Hash
+                },
+                KeySchemaElement {
+                    attributeName = Table.SORT_KEY
+                    keyType = KeyType.Range
+                }
+            )
+            attributeDefinitions = listOf(
+                AttributeDefinition {
+                    attributeName = Table.PARTITION_KEY
+                    attributeType = ScalarAttributeType.S
+                },
+                AttributeDefinition {
+                    attributeName = Table.SORT_KEY
+                    attributeType = ScalarAttributeType.S
+                }
+            )
+            billingMode = BillingMode.PayPerRequest
+
+            configure()
+        }
+
+        client.createTable(request);
+    }
 }
 
 private object DynamoDbDocument {
