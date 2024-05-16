@@ -83,6 +83,123 @@ class DynamoDbDocumentStoreTests {
         assertDocument(document, ids[0], null, 0)
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun updateDocuments_conflictDocumentDoesNotExist(checkOnly: Boolean) = runBlocking {
+        val exception = assertThrows(
+            UpdateConflictException::class.java,
+            fun() = runBlocking {
+                if (checkOnly) {
+                    checkDocument(10)
+                } else {
+                    updateDocument("{\"abc\":\"def\"}", 10)
+                }
+            })
+
+        val document = store.getDocument(ids[0])
+
+        assertDocument(document, ids[0], null, 0)
+        assertEquals(ids[0], exception.id)
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun updateDocuments_conflictWrongVersion(checkOnly: Boolean) = runBlocking {
+        updateDocument("{\"abc\":\"def\"}", 0)
+
+        val exception = assertThrows(
+            UpdateConflictException::class.java,
+            fun() = runBlocking {
+                if (checkOnly) {
+                    checkDocument(10)
+                } else {
+                    updateDocument("{\"abc\":\"def\"}", 10)
+                }
+            })
+
+        val document = store.getDocument(ids[0])
+
+        assertDocument(document, ids[0], "{\"abc\":\"def\"}", 1);
+        assertEquals(ids[0], exception.id)
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun updateDocuments_conflictDocumentAlreadyExists(checkOnly: Boolean) = runBlocking {
+        updateDocument("{\"abc\":\"def\"}", 0)
+
+        val exception = assertThrows(
+            UpdateConflictException::class.java,
+            fun() = runBlocking {
+                if (checkOnly) {
+                    checkDocument(0)
+                } else {
+                    updateDocument("{\"abc\":\"def\"}", 0)
+                }
+            })
+
+        val document = store.getDocument(ids[0])
+
+        assertDocument(document, ids[0], "{\"abc\":\"def\"}", 1);
+        assertEquals(ids[0], exception.id)
+    }
+
+    @Test
+    fun updateDocuments_multipleDocumentsSuccess() = runBlocking {
+        updateDocument(ids[0], "{\"abc\":\"def\"}", 0)
+        updateDocument(ids[1], "{\"ghi\":\"jkl\"}", 0)
+
+        store.updateDocuments(
+            listOf(
+                Document(ids[0], "{\"v\":\"1\"}", 1),
+                Document(ids[2], "{\"v\":\"2\"}", 0)
+            ),
+            listOf(
+                Document(ids[1], "{\"v\":\"3\"}", 1),
+                Document(ids[3], "{\"v\":\"4\"}", 0)
+            )
+        )
+
+        val document1 = store.getDocument(ids[0])
+        val document2 = store.getDocument(ids[1])
+        val document3 = store.getDocument(ids[2])
+        val document4 = store.getDocument(ids[3])
+
+        assertDocument(document1, ids[0], "{\"v\":\"1\"}", 2)
+        assertDocument(document2, ids[1], "{\"ghi\":\"jkl\"}", 1)
+        assertDocument(document3, ids[2], "{\"v\":\"2\"}", 1)
+        assertDocument(document4, ids[3], null, 0)
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun updateDocuments_multipleDocumentsConflict(checkOnly: Boolean) = runBlocking {
+        updateDocument(ids[0], "{\"abc\":\"def\"}", 0)
+
+        val exception = assertThrows(
+            UpdateConflictException::class.java,
+            fun() = runBlocking {
+                if (checkOnly) {
+                    store.updateDocuments(
+                        listOf(Document(ids[0], "{\"ghi\":\"jkl\"}", 1)),
+                        listOf(Document(ids[1], "{\"mno\":\"pqr\"}", 10))
+                    )
+                } else {
+                    store.updateDocuments(
+                        Document(ids[0], "{\"ghi\":\"jkl\"}", 1),
+                        Document(ids[1], "{\"mno\":\"pqr\"}", 10)
+                    )
+                }
+            })
+
+        val document1 = store.getDocument(ids[0])
+        val document2 = store.getDocument(ids[1])
+
+        assertDocument(document1, ids[0], "{\"abc\":\"def\"}", 1)
+        assertDocument(document2, ids[1], null, 0)
+        assertEquals(ids[1], exception.id)
+    }
+
     //endregion
 
     //region Helper Methods
