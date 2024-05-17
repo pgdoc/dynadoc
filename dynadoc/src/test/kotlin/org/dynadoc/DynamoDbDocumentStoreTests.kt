@@ -26,6 +26,7 @@ import kotlin.random.asKotlinRandom
 class DynamoDbDocumentStoreTests {
     private lateinit var ids: List<DocumentKey>
     private lateinit var store: DynamoDbDocumentStore
+    private var longJson: String = "{\"key\":\"${"a".repeat(1024 * 1024)}\"}"
 
     //region updateDocuments
 
@@ -96,7 +97,7 @@ class DynamoDbDocumentStoreTests {
         assertThrows(
             DynamoDbException::class.java,
             fun() = runBlocking {
-                updateDocument("a".repeat(1024 * 1024), 0)
+                updateDocument(longJson, 0)
             })
 
         val document = store.getDocument(ids[0])
@@ -230,7 +231,7 @@ class DynamoDbDocumentStoreTests {
             fun() = runBlocking {
                 store.updateDocuments(
                     Document(ids[0], "{\"ghi\":\"jkl\"}", 1),
-                    Document(ids[1], "a".repeat(1024 * 1024), 0)
+                    Document(ids[1], longJson, 0)
                 )
             })
 

@@ -4,7 +4,8 @@ import aws.sdk.kotlin.services.dynamodb.DynamoDbClient
 import aws.sdk.kotlin.services.dynamodb.model.*
 import aws.sdk.kotlin.services.dynamodb.paginators.queryPaginated
 import kotlinx.coroutines.flow.*
-import org.dynadoc.DynamoDbDocument.conditionalCheckFailureReasons
+import org.dynadoc.AttributeMapper.PARTITION_KEY
+import org.dynadoc.AttributeMapper.SORT_KEY
 
 class DynamoDbDocumentStore(
     private val client: DynamoDbClient,
@@ -30,15 +31,7 @@ class DynamoDbDocumentStore(
             TransactWriteItem {
                 put = Put {
                     tableName = this@DynamoDbDocumentStore.tableName
-                    item = buildMap {
-                        put(Table.PARTITION_KEY, AttributeValue.S(document.id.partitionKey))
-                        put(Table.SORT_KEY, AttributeValue.S(document.id.sortKey))
-                        put(Table.VERSION, AttributeValue.N((document.version + 1).toString()))
-
-                        document.body?.let {
-                            put(Table.BODY, AttributeValue.S(it))
-                        }
-                    }
+                    item = AttributeMapper.fromDocument(document)
                     conditionExpression = conditionExpression(document.version)
                     expressionAttributeValues = expressionAttributeValues(document.version)
                     returnValuesOnConditionCheckFailure = ReturnValuesOnConditionCheckFailure.AllOld
@@ -50,7 +43,7 @@ class DynamoDbDocumentStore(
             TransactWriteItem {
                 conditionCheck = ConditionCheck {
                     tableName = this@DynamoDbDocumentStore.tableName
-                    key = Table.getKeyAttributes(document.id)
+                    key = AttributeMapper.getKeyAttributes(document.id)
                     conditionExpression = conditionExpression(document.version)
                     expressionAttributeValues = expressionAttributeValues(document.version)
                     returnValuesOnConditionCheckFailure = ReturnValuesOnConditionCheckFailure.AllOld
@@ -77,7 +70,7 @@ class DynamoDbDocumentStore(
                 val attributes: Map<String, AttributeValue> = failure.put?.item
                     ?: failure.conditionCheck?.key!!
 
-                throw UpdateConflictException(DynamoDbDocument.parseKey(attributes))
+                throw UpdateConflictException(AttributeMapper.parseKey(attributes))
             } else {
                 throw exception
             }
@@ -94,7 +87,7 @@ class DynamoDbDocumentStore(
         val request: BatchGetItemRequest = BatchGetItemRequest {
             requestItems = mapOf(
                 tableName to KeysAndAttributes {
-                    keys = idList.distinct().map(Table::getKeyAttributes)
+                    keys = idList.distinct().map(AttributeMapper::getKeyAttributes)
                     consistentRead = true
                 }
             )
@@ -106,7 +99,7 @@ class DynamoDbDocumentStore(
             if (responses != null) {
                 val documents: Map<DocumentKey, Document> = responses.values
                     .flatten()
-                    .map(DynamoDbDocument::parse)
+                    .map(AttributeMapper::toDocument)
                     .associateBy { it.id }
 
                 val result = idList
@@ -121,33 +114,33 @@ class DynamoDbDocumentStore(
         return result.flatMapConcat { it.asFlow() }
     }
 
-    fun runQuery(query: QueryRequest): Flow<Document> {
-        return client.queryPaginated(query)
-            .mapNotNull { response -> response.items }
-            .flatMapConcat { items -> items.asFlow() }
-            .map(DynamoDbDocument::parse)
-    }
+//    fun runQuery(query: QueryRequest): Flow<Document> {
+//        return client.queryPaginated(query)
+//            .mapNotNull { response -> response.items }
+//            .flatMapConcat { items -> items.asFlow() }
+//            .map(DynamoDbDocument::parse)
+//    }
 
     suspend fun createTable(configure: CreateTableRequest.Builder.() -> Unit = { }) {
         val request: CreateTableRequest = CreateTableRequest {
             tableName = this@DynamoDbDocumentStore.tableName
             keySchema = listOf(
                 KeySchemaElement {
-                    attributeName = Table.PARTITION_KEY
+                    attributeName = PARTITION_KEY
                     keyType = KeyType.Hash
                 },
                 KeySchemaElement {
-                    attributeName = Table.SORT_KEY
+                    attributeName = SORT_KEY
                     keyType = KeyType.Range
                 }
             )
             attributeDefinitions = listOf(
                 AttributeDefinition {
-                    attributeName = Table.PARTITION_KEY
+                    attributeName = PARTITION_KEY
                     attributeType = ScalarAttributeType.S
                 },
                 AttributeDefinition {
-                    attributeName = Table.SORT_KEY
+                    attributeName = SORT_KEY
                     attributeType = ScalarAttributeType.S
                 }
             )
@@ -158,31 +151,4 @@ class DynamoDbDocumentStore(
 
         client.createTable(request);
     }
-}
-
-private object DynamoDbDocument {
-    val conditionalCheckFailureReasons = setOf("ConditionalCheckFailed", "None")
-
-    fun parse(attributes: Map<String, AttributeValue>): Document = Document(
-        id = parseKey(attributes),
-        body = attributes[Table.BODY]?.asS(),
-        version = attributes[Table.VERSION]!!.asN().toLong()
-    )
-
-    fun parseKey(attributes: Map<String, AttributeValue>): DocumentKey = DocumentKey(
-        partitionKey = attributes[Table.PARTITION_KEY]!!.asS(),
-        sortKey = attributes[Table.SORT_KEY]!!.asS()
-    )
-}
-
-private object Table {
-    const val PARTITION_KEY = "partition_key"
-    const val SORT_KEY = "sort_key"
-    const val BODY = "body"
-    const val VERSION = "version"
-
-    fun getKeyAttributes(id: DocumentKey) = mapOf(
-        PARTITION_KEY to AttributeValue.S(id.partitionKey),
-        SORT_KEY to AttributeValue.S(id.sortKey)
-    )
 }
