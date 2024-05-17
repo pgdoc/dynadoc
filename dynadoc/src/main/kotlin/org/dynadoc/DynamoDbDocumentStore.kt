@@ -95,10 +95,9 @@ class DynamoDbDocumentStore(
             requestItems = mapOf(
                 tableName to KeysAndAttributes {
                     keys = idList.distinct().map(Table::getKeyAttributes)
+                    consistentRead = true
                 }
             )
-
-            returnConsumedCapacity = ReturnConsumedCapacity.Total
         }
 
         val result: Flow<List<Document>> = flow {

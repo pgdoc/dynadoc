@@ -2,6 +2,7 @@ package org.dynadoc
 
 import aws.sdk.kotlin.runtime.auth.credentials.StaticCredentialsProvider
 import aws.sdk.kotlin.services.dynamodb.DynamoDbClient
+import aws.sdk.kotlin.services.dynamodb.model.DynamoDbException
 import aws.smithy.kotlin.runtime.net.url.Url
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -84,6 +85,19 @@ class DynamoDbDocumentStoreTests {
     fun updateDocuments_checkToCheck() = runBlocking {
         checkDocument(0)
         checkDocument(0)
+
+        val document = store.getDocument(ids[0])
+
+        assertDocument(document, ids[0], null, 0)
+    }
+
+    @Test
+    fun updateDocuments_genericError() = runBlocking {
+        assertThrows(
+            DynamoDbException::class.java,
+            fun() = runBlocking {
+                updateDocument("a".repeat(1024 * 1024), 0)
+            })
 
         val document = store.getDocument(ids[0])
 
@@ -207,6 +221,26 @@ class DynamoDbDocumentStoreTests {
         assertEquals(ids[1], exception.id)
     }
 
+    @Test
+    fun updateDocuments_multipleDocumentsGenericError() = runBlocking {
+        updateDocument(ids[0], "{\"abc\":\"def\"}", 0)
+
+        assertThrows(
+            DynamoDbException::class.java,
+            fun() = runBlocking {
+                store.updateDocuments(
+                    Document(ids[0], "{\"ghi\":\"jkl\"}", 1),
+                    Document(ids[1], "a".repeat(1024 * 1024), 0)
+                )
+            })
+
+        val document1 = store.getDocument(ids[0])
+        val document2 = store.getDocument(ids[1])
+
+        assertDocument(document1, ids[0], "{\"abc\":\"def\"}", 1)
+        assertDocument(document2, ids[1], null, 0)
+    }
+
     //endregion
 
     //region getDocuments
@@ -319,10 +353,7 @@ class DynamoDbDocumentStoreTests {
 
     @BeforeEach
     fun testSetup() {
-        store = DynamoDbDocumentStore(
-            client = client,
-            tableName = "tests"
-        )
+        store = DynamoDbDocumentStore(client, "tests")
         ids = (0..10).map { i -> DocumentKey("${UUID.randomUUID()}_$i", "0000") }
     }
 
