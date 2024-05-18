@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
 import org.skyscreamer.jsonassert.JSONAssert
@@ -16,7 +17,6 @@ import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
-import software.amazon.awssdk.auth.credentials.AwsCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient
@@ -281,6 +281,16 @@ class DynamoDbDocumentStoreTests {
         assertEquals(0, documents.size)
     }
 
+    @ParameterizedTest
+    @MethodSource("org.dynadoc.MethodSources#getDocuments_jsonDeserialization")
+    fun getDocuments_jsonDeserialization(json: String) = runBlocking {
+        updateDocument(ids[0], json, 0)
+
+        val document = store.getDocument(ids[0])
+
+        assertDocument(document, ids[0], json, 1)
+    }
+
     //endregion
 
     //region Helper Methods
@@ -376,5 +386,33 @@ object MethodSources {
             Arguments.of("{\"abc\":\"def\"}", null),
             Arguments.of(null, null)
         )
+    }
+
+    @JvmStatic
+    fun getDocuments_jsonDeserialization(): Stream<String> {
+        val scalars: List<String> = listOf(
+            "1234567890.0987654321",
+            "\"text\"",
+            "true",
+            "false",
+            "null"
+        )
+
+        val firstLevel: List<String> = scalars.map {
+            "{ \"a\": $it }"
+        }
+
+        val nestedObjects = firstLevel.map {
+            "{ \"b\": $it }"
+        }
+
+        val arrayOfObjects = (scalars + firstLevel).map {
+            val repeat = "$it, $it, $it"
+            "{ \"b\": [ $repeat ] }"
+        }
+
+        val mixedArray = "{ \"c\": [ ${(scalars + firstLevel).joinToString()} ] }"
+
+        return (firstLevel + nestedObjects + arrayOfObjects + mixedArray).stream()
     }
 }
