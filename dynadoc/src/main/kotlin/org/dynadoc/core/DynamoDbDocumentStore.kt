@@ -31,7 +31,7 @@ class DynamoDbDocumentStore(
         val updates: Sequence<TransactWriteItem> = updatedDocuments.asSequence().map { document ->
                 TransactWriteItem.builder()
                     .put(Put.builder()
-                        .tableName(this@DynamoDbDocumentStore.tableName)
+                        .tableName(tableName)
                         .item(AttributeMapper.fromDocument(document))
                         .conditionExpression(conditionExpression(document.version))
                         .expressionAttributeValues(expressionAttributeValues(document.version))
@@ -42,7 +42,7 @@ class DynamoDbDocumentStore(
         val checks: Sequence<TransactWriteItem> = checkedDocuments.asSequence().map { document ->
                 TransactWriteItem.builder()
                     .conditionCheck(ConditionCheck.builder()
-                        .tableName(this@DynamoDbDocumentStore.tableName)
+                        .tableName(tableName)
                         .key(AttributeMapper.getKeyAttributes(document.id))
                         .conditionExpression(conditionExpression(document.version))
                         .expressionAttributeValues(expressionAttributeValues(document.version))
@@ -115,7 +115,7 @@ class DynamoDbDocumentStore(
 
     suspend fun createTable(configure: CreateTableRequest.Builder.() -> Unit = { }) {
         val request: CreateTableRequest = CreateTableRequest.builder()
-            .tableName(this.tableName)
+            .tableName(tableName)
             .keySchema(listOf(
                 KeySchemaElement.builder()
                     .attributeName(PARTITION_KEY)

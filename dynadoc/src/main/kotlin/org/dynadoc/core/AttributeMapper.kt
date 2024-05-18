@@ -9,8 +9,9 @@ internal object AttributeMapper {
     const val PARTITION_KEY = "partition_key"
     const val SORT_KEY = "sort_key"
     const val VERSION = "version"
+    const val DELETED = "is_deleted"
 
-    private val specialKeys: Set<String> = setOf(PARTITION_KEY, SORT_KEY, VERSION)
+    private val specialKeys: Set<String> = setOf(PARTITION_KEY, SORT_KEY, VERSION, DELETED)
     private val jsonAttributeConverter: JsonItemAttributeConverter = JsonItemAttributeConverter.create()
     private val jsonNodeParser: ThreadLocal<JsonNodeParser> = ThreadLocal.withInitial {
         JsonNodeParser.builder()
@@ -19,11 +20,11 @@ internal object AttributeMapper {
     }
 
     fun toDocument(attributes: Map<String, AttributeValue>): Document {
-        val bodyMap: Map<String, AttributeValue> = attributes.filterKeys { it !in specialKeys }
         val body: String? =
-            if (bodyMap.isEmpty()) {
+            if (attributes[DELETED]!!.bool() == true) {
                 null
             } else {
+                val bodyMap: Map<String, AttributeValue> = attributes.filterKeys { it !in specialKeys }
                 val json: JsonNode = jsonAttributeConverter.transformTo(AttributeValue.fromM(bodyMap))
                 json.toString()
             }
@@ -45,6 +46,7 @@ internal object AttributeMapper {
 
         putAll(getKeyAttributes(document.id))
         put(VERSION, AttributeValue.fromN((document.version + 1).toString()))
+        put(DELETED, AttributeValue.fromBool(document.body == null))
     }
 
     fun getKeyAttributes(id: DocumentKey) = mapOf(

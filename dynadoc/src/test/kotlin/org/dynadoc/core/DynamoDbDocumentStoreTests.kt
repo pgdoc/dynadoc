@@ -399,7 +399,7 @@ object MethodSources {
 
         val firstLevel: List<String> = scalars.map {
             "{ \"a\": $it }"
-        }
+        } + "{ }"
 
         val nestedObjects = firstLevel.map {
             "{ \"b\": $it }"
