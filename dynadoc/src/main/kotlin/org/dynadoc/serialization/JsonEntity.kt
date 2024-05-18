@@ -7,3 +7,6 @@ data class JsonEntity<out T>(
     val entity: T,
     val version: Long
 )
+
+fun <T> JsonEntity<T>.modify(builder: T.() -> T) =
+    JsonEntity(id, builder(entity), version)

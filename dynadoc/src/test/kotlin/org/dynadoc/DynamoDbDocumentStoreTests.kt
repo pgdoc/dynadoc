@@ -8,7 +8,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
-import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
 import org.skyscreamer.jsonassert.JSONAssert
@@ -19,7 +18,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient
+import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.dynamodb.model.DynamoDbException
 import java.net.URI
 import java.util.*
@@ -328,7 +327,7 @@ class DynamoDbDocumentStoreTests {
     //region Setup
 
     private companion object Setup {
-        lateinit var client: DynamoDbClient
+        lateinit var client: DynamoDbAsyncClient
         var port: Int = Random().asKotlinRandom().nextInt(10000, 32000)
 
         @JvmStatic
@@ -346,7 +345,7 @@ class DynamoDbDocumentStoreTests {
         @BeforeAll
         @JvmStatic
         fun globalSetup() {
-            client = DynamoDbClient.builder()
+            client = DynamoDbAsyncClient.builder()
                 .endpointOverride(URI.create("http://localhost:$port"))
                 .credentialsProvider(StaticCredentialsProvider.create(
                     AwsBasicCredentials.create("NONE", "NONE")))

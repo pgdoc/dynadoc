@@ -1,14 +1,15 @@
 package org.dynadoc
 
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.future.await
 import org.dynadoc.AttributeMapper.PARTITION_KEY
 import org.dynadoc.AttributeMapper.SORT_KEY
 import org.dynadoc.AttributeMapper.VERSION
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient
+import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.dynamodb.model.*
 
 class DynamoDbDocumentStore(
-    private val client: DynamoDbClient,
+    private val client: DynamoDbAsyncClient,
     private val tableName: String
 ) : DocumentStore {
 
@@ -56,7 +57,7 @@ class DynamoDbDocumentStore(
                 .transactItems(elements)
                 .build()
 
-            client.transactWriteItems(write)
+            client.transactWriteItems(write).await()
 
         } catch (exception: TransactionCanceledException) {
             val checkFailureIndex: Int = exception.cancellationReasons()
@@ -92,7 +93,7 @@ class DynamoDbDocumentStore(
             .build()
 
         val result: Flow<List<Document>> = flow {
-            val responses = client.batchGetItem(request).responses()
+            val responses = client.batchGetItem(request).await().responses()
 
             if (responses != null) {
                 val documents: Map<DocumentKey, Document> = responses.values
@@ -139,6 +140,6 @@ class DynamoDbDocumentStore(
             .apply(configure)
             .build()
 
-        client.createTable(request)
+        client.createTable(request).await()
     }
 }

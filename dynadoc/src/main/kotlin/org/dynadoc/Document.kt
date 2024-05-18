@@ -3,8 +3,7 @@ package org.dynadoc
 data class Document(
     val id: DocumentKey,
     val body: String?,
-    val version: Long,
-    val extraAttributes: Map<String, String> = emptyMap()
+    val version: Long
 )
 
 data class DocumentKey(

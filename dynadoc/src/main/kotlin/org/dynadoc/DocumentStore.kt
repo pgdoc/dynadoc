@@ -13,14 +13,12 @@ interface DocumentStore {
 
 class UpdateConflictException(
     val id: DocumentKey
-) : RuntimeException("The object $id has been modified.")
+): RuntimeException("The object $id has been modified.")
 
 
 @Throws(UpdateConflictException::class)
-suspend fun DocumentStore.updateDocuments(vararg documents: Document) {
-    updateDocuments(documents.toList(), listOf())
-}
+suspend fun DocumentStore.updateDocuments(vararg documents: Document) =
+    updateDocuments(documents.toList(), emptyList())
 
-suspend fun DocumentStore.getDocument(id: DocumentKey): Document {
-    return getDocuments(listOf(id)).first()
-}
+suspend fun DocumentStore.getDocument(id: DocumentKey): Document =
+    getDocuments(listOf(id)).first()
