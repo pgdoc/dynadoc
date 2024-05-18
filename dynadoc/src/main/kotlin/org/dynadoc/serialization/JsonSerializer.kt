@@ -1,6 +1,6 @@
 package org.dynadoc.serialization
 
-import org.dynadoc.Document
+import org.dynadoc.core.Document
 
 interface JsonSerializer {
     fun serialize(entity: Any): String

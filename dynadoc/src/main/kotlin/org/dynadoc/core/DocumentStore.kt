@@ -1,4 +1,4 @@
-package org.dynadoc
+package org.dynadoc.core
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first

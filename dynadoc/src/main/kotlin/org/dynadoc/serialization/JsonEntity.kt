@@ -1,6 +1,6 @@
 package org.dynadoc.serialization
 
-import org.dynadoc.DocumentKey
+import org.dynadoc.core.DocumentKey
 
 data class JsonEntity<out T>(
     val id: DocumentKey,

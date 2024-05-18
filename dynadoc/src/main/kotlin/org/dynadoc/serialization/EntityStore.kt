@@ -1,8 +1,8 @@
 package org.dynadoc.serialization
 
 import kotlinx.coroutines.flow.toList
-import org.dynadoc.DocumentKey
-import org.dynadoc.DocumentStore
+import org.dynadoc.core.DocumentKey
+import org.dynadoc.core.DocumentStore
 
 class EntityStore(
     private val documentStore: DocumentStore,

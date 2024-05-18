@@ -1,4 +1,4 @@
-package org.dynadoc
+package org.dynadoc.core
 
 data class Document(
     val id: DocumentKey,

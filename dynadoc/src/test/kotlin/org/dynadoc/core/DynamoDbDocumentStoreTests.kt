@@ -1,4 +1,4 @@
-package org.dynadoc
+package org.dynadoc.core
 
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -34,7 +34,7 @@ class DynamoDbDocumentStoreTests {
     //region updateDocuments
 
     @ParameterizedTest
-    @MethodSource("org.dynadoc.MethodSources#updateDocuments_oneArgument")
+    @MethodSource("org.dynadoc.core.MethodSources#updateDocuments_oneArgument")
     fun updateDocuments_emptyToValue(to: String?) = runBlocking {
         updateDocument(to, 0)
 
@@ -44,7 +44,7 @@ class DynamoDbDocumentStoreTests {
     }
 
     @ParameterizedTest
-    @MethodSource("org.dynadoc.MethodSources#updateDocuments_twoArguments")
+    @MethodSource("org.dynadoc.core.MethodSources#updateDocuments_twoArguments")
     fun updateDocuments_valueToValue(from: String?, to: String?) = runBlocking {
         updateDocument(from, 0)
         updateDocument(to, 1)
@@ -64,7 +64,7 @@ class DynamoDbDocumentStoreTests {
     }
 
     @ParameterizedTest
-    @MethodSource("org.dynadoc.MethodSources#updateDocuments_oneArgument")
+    @MethodSource("org.dynadoc.core.MethodSources#updateDocuments_oneArgument")
     fun updateDocuments_valueToCheck(from: String?) = runBlocking {
         updateDocument(from, 0)
         checkDocument(1)
@@ -75,7 +75,7 @@ class DynamoDbDocumentStoreTests {
     }
 
     @ParameterizedTest
-    @MethodSource("org.dynadoc.MethodSources#updateDocuments_oneArgument")
+    @MethodSource("org.dynadoc.core.MethodSources#updateDocuments_oneArgument")
     fun updateDocuments_checkToValue(to: String?) = runBlocking {
         checkDocument(0)
         updateDocument(to, 0)
@@ -281,7 +281,7 @@ class DynamoDbDocumentStoreTests {
     }
 
     @ParameterizedTest
-    @MethodSource("org.dynadoc.MethodSources#getDocuments_jsonDeserialization")
+    @MethodSource("org.dynadoc.core.MethodSources#getDocuments_jsonDeserialization")
     fun getDocuments_jsonDeserialization(json: String) = runBlocking {
         updateDocument(ids[0], json, 0)
 

@@ -1,10 +1,10 @@
-package org.dynadoc
+package org.dynadoc.core
 
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.future.await
-import org.dynadoc.AttributeMapper.PARTITION_KEY
-import org.dynadoc.AttributeMapper.SORT_KEY
-import org.dynadoc.AttributeMapper.VERSION
+import org.dynadoc.core.AttributeMapper.PARTITION_KEY
+import org.dynadoc.core.AttributeMapper.SORT_KEY
+import org.dynadoc.core.AttributeMapper.VERSION
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.dynamodb.model.*
 

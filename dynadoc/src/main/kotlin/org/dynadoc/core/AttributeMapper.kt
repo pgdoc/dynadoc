@@ -1,4 +1,4 @@
-package org.dynadoc
+package org.dynadoc.core
 
 import software.amazon.awssdk.enhanced.dynamodb.internal.converter.attribute.JsonItemAttributeConverter
 import software.amazon.awssdk.protocols.jsoncore.JsonNode
