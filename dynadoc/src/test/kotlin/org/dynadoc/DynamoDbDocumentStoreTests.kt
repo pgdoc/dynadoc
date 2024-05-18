@@ -1,9 +1,5 @@
 package org.dynadoc
 
-import aws.sdk.kotlin.runtime.auth.credentials.StaticCredentialsProvider
-import aws.sdk.kotlin.services.dynamodb.DynamoDbClient
-import aws.sdk.kotlin.services.dynamodb.model.DynamoDbException
-import aws.smithy.kotlin.runtime.net.url.Url
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
@@ -14,10 +10,18 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
+import org.skyscreamer.jsonassert.JSONAssert
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
+import software.amazon.awssdk.auth.credentials.AwsCredentials
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient
+import software.amazon.awssdk.services.dynamodb.model.DynamoDbException
+import java.net.URI
 import java.util.*
 import java.util.stream.Stream
 import kotlin.random.asKotlinRandom
@@ -303,7 +307,7 @@ class DynamoDbDocumentStoreTests {
             assertNull(document.body)
         } else {
             assertNotNull(document.body)
-            assertEquals(body, document.body)
+            JSONAssert.assertEquals(body, document.body, true)
         }
 
         assertEquals(version, document.version)
@@ -333,16 +337,10 @@ class DynamoDbDocumentStoreTests {
         @JvmStatic
         fun globalSetup() {
             client = DynamoDbClient.builder()
-                .apply {
-                    this.config.apply {
-                        this.endpointUrl = Url.parse("http://localhost:$port")
-                        this.credentialsProvider = StaticCredentialsProvider {
-                            this.accessKeyId = "N/A"
-                            this.secretAccessKey = "N/A"
-                        }
-                        this.region = "eu-west-1"
-                    }
-                }
+                .endpointOverride(URI.create("http://localhost:$port"))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create("NONE", "NONE")))
+                .region(Region.EU_WEST_1)
                 .build()
 
             require(container.isRunning()) { container.logs }

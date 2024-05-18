@@ -13,8 +13,7 @@ repositories {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-    implementation("aws.sdk.kotlin:dynamodb:1.2.15")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.1")
+    implementation("software.amazon.awssdk:dynamodb-enhanced:2.25.54")
 
     testImplementation(kotlin("test"))
 
@@ -22,6 +21,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("org.testcontainers:testcontainers:1.19.8")
     testImplementation("org.testcontainers:junit-jupiter:1.19.8")
+    testImplementation("org.skyscreamer:jsonassert:1.5.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

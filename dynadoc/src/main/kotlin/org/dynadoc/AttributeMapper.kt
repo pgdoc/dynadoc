@@ -1,82 +1,59 @@
 package org.dynadoc
 
-import aws.sdk.kotlin.services.dynamodb.model.AttributeValue
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+import software.amazon.awssdk.enhanced.dynamodb.internal.converter.attribute.JsonItemAttributeConverter
+import software.amazon.awssdk.protocols.jsoncore.JsonNode
+import software.amazon.awssdk.protocols.jsoncore.JsonNodeParser
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue
 
 internal object AttributeMapper {
     const val PARTITION_KEY = "partition_key"
     const val SORT_KEY = "sort_key"
     const val VERSION = "version"
-    private val specialKeys = setOf(PARTITION_KEY, SORT_KEY, VERSION)
+
+    private val specialKeys: Set<String> = setOf(PARTITION_KEY, SORT_KEY, VERSION)
+    private val jsonAttributeConverter: JsonItemAttributeConverter = JsonItemAttributeConverter.create()
+    private val jsonNodeParser: ThreadLocal<JsonNodeParser> = ThreadLocal.withInitial {
+        JsonNodeParser.builder()
+            .jsonFactory(JsonNodeParser.DEFAULT_JSON_FACTORY)
+            .build()
+    }
 
     fun toDocument(attributes: Map<String, AttributeValue>): Document {
-        val bodyMap = attributes.filterKeys { it !in specialKeys }
-        val body =
+        val bodyMap: Map<String, AttributeValue> = attributes.filterKeys { it !in specialKeys }
+        val body: String? =
             if (bodyMap.isEmpty()) {
                 null
             } else {
-                val rootMap = bodyMap.entries.associate { it.key to readAttribute(it.value) }
-                val objectMapper: ObjectMapper = jacksonObjectMapper()
-
-                objectMapper.writeValueAsString(rootMap)
+                val json: JsonNode = jsonAttributeConverter.transformTo(AttributeValue.fromM(bodyMap))
+                json.toString()
             }
 
         return Document(
             id = parseKey(attributes),
             body = body,
-            version = attributes[VERSION]!!.asN().toLong()
+            version = attributes[VERSION]!!.n().toLong()
         )
     }
 
     fun fromDocument(document: Document): Map<String, AttributeValue> = buildMap {
         if (document.body != null) {
-            val objectMapper: ObjectMapper = jacksonObjectMapper()
-            val jsonMap: Map<String, Any> = objectMapper.readValue(document.body)
-            val root = writeAttribute(jsonMap) as AttributeValue.M
+            val jsonNode: JsonNode = jsonNodeParser.get().parse(document.body)
+            val attributesRoot: AttributeValue = jsonAttributeConverter.transformFrom(jsonNode)
 
-            putAll(root.value)
+            putAll(attributesRoot.m())
         }
 
         putAll(getKeyAttributes(document.id))
-        put(VERSION, AttributeValue.N((document.version + 1).toString()))
+        put(VERSION, AttributeValue.fromN((document.version + 1).toString()))
     }
 
     fun getKeyAttributes(id: DocumentKey) = mapOf(
-        PARTITION_KEY to AttributeValue.S(id.partitionKey),
-        SORT_KEY to AttributeValue.S(id.sortKey)
+        PARTITION_KEY to AttributeValue.fromS(id.partitionKey),
+        SORT_KEY to AttributeValue.fromS(id.sortKey)
     )
 
     fun parseKey(attributes: Map<String, AttributeValue>): DocumentKey = DocumentKey(
-        partitionKey = attributes[PARTITION_KEY]!!.asS(),
-        sortKey = attributes[SORT_KEY]!!.asS()
+        partitionKey = attributes[PARTITION_KEY]!!.s(),
+        sortKey = attributes[SORT_KEY]!!.s()
     )
-
-    private fun writeAttribute(value: Any?): AttributeValue {
-        if (value == null) {
-            return AttributeValue.Null(true)
-        }
-
-        return when (value) {
-            is String -> AttributeValue.S(value)
-            is Number -> AttributeValue.N(value.toString())
-            is Boolean -> AttributeValue.Bool(value)
-            is List<*> -> AttributeValue.L(value.map { writeAttribute(it) })
-            is Map<*, *> -> AttributeValue.M(value.entries.associate { (k, v) -> k as String to writeAttribute(v) })
-            else -> throw RuntimeException("Unknown type ${value::class.qualifiedName}")
-        }
-    }
-
-    private fun readAttribute(value: AttributeValue): Any? {
-        return when (value) {
-            is AttributeValue.S -> value.value
-            is AttributeValue.N -> value.value.toLong()
-            is AttributeValue.Bool -> value.value
-            is AttributeValue.L -> value.value.map { readAttribute(it) }
-            is AttributeValue.M -> value.value.entries.associate { it.key to readAttribute(it.value) }
-            is AttributeValue.Null -> null
-            else -> throw RuntimeException("Unknown type ${value::class.qualifiedName}")
-        }
-    }
 }
