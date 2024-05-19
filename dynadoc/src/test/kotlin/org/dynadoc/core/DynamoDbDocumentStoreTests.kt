@@ -4,7 +4,6 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -28,11 +27,12 @@ import kotlin.random.asKotlinRandom
 
 @Testcontainers
 class DynamoDbDocumentStoreTests {
+    private val store: DynamoDbDocumentStore = DynamoDbDocumentStore(client, "tests")
+
     private val partitionKey = UUID.randomUUID().toString()
     private val ids: List<DocumentKey> = (0..10).map { i -> DocumentKey("${partitionKey}_$i", "0000") }
-    private val store: DynamoDbDocumentStore = DynamoDbDocumentStore(client, "tests")
     private val longJson: String = "{\"key\":\"${"a".repeat(1024 * 1024)}\"}"
-
+    private val string100Kb: String = "a".repeat(100 * 1024)
     //region updateDocuments
 
     @ParameterizedTest
@@ -338,7 +338,6 @@ class DynamoDbDocumentStoreTests {
 
     @Test
     fun query_pagination() = runBlocking {
-        val string100Kb: String = "a".repeat(100 * 1024)
         val documents = (100..199).map { i ->
             Document(DocumentKey(partitionKey, "ABC0$i"), "{\"b\":\"$string100Kb\"}", 0)
         }
@@ -346,13 +345,65 @@ class DynamoDbDocumentStoreTests {
 
         val result =
             store.query {
-                keyConditionExpression("partition_key = :pk")
+                keyConditionExpression("partition_key = :pk AND sort_key BETWEEN :start AND :end")
                 expressionAttributeValues(mapOf(
                     ":pk" to AttributeValue.fromS(partitionKey),
+                    ":start" to AttributeValue.fromS("ABC0120"),
+                    ":end" to AttributeValue.fromS("ABC0180")
                 ))
             }.toList()
 
-        assertDocuments(result, documents)
+        assertDocuments(result, documents.slice(20..80))
+    }
+
+    //endregion
+
+    //region scan
+
+    @Test
+    fun scan_filterAttribute() = runBlocking {
+        val documents = (0..9).map { i ->
+            Document(
+                id = DocumentKey("${partitionKey}_$i", "0000"),
+                body = "{\"b\":\"value $i\"}",
+                version = 0
+            )
+        }
+        store.updateDocuments(*documents.toTypedArray())
+
+        val result =
+            store.scan {
+                filterExpression("b BETWEEN :start AND :end")
+                expressionAttributeValues(mapOf(
+                    ":start" to AttributeValue.fromS("val"),
+                    ":end" to AttributeValue.fromS("value 4")
+                ))
+            }.toList()
+
+        assertDocuments(result.sortedBy { it.id.partitionKey }, documents.slice(0..4))
+    }
+
+    @Test
+    fun scan_pagination() = runBlocking {
+        val documents = (100..199).map { i ->
+            Document(
+                id = DocumentKey("${partitionKey}_$i", "0000"),
+                body = "{\"b\":\"$string100Kb\"}",
+                version = 0
+            )
+        }
+        documents.forEach { document -> store.updateDocuments(document) }
+
+        val result =
+            store.scan {
+                filterExpression("partition_key BETWEEN :start AND :end")
+                expressionAttributeValues(mapOf(
+                    ":start" to AttributeValue.fromS("${partitionKey}_120"),
+                    ":end" to AttributeValue.fromS("${partitionKey}_180")
+                ))
+            }.toList()
+
+        assertDocuments(result.sortedBy { it.id.partitionKey }, documents.slice(20..80))
     }
 
     //endregion
