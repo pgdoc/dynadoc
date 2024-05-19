@@ -10,8 +10,8 @@ internal object AttributeMapper {
     const val SORT_KEY = "sort_key"
     const val VERSION = "version"
     const val DELETED = "is_deleted"
+    val systemAttributes: Set<String> = setOf(PARTITION_KEY, SORT_KEY, VERSION, DELETED)
 
-    private val specialKeys: Set<String> = setOf(PARTITION_KEY, SORT_KEY, VERSION, DELETED)
     private val jsonAttributeConverter: JsonItemAttributeConverter = JsonItemAttributeConverter.create()
     private val jsonNodeParser: ThreadLocal<JsonNodeParser> = ThreadLocal.withInitial {
         JsonNodeParser.builder()
@@ -24,7 +24,7 @@ internal object AttributeMapper {
             if (attributes[DELETED]!!.bool() == true) {
                 null
             } else {
-                val bodyMap: Map<String, AttributeValue> = attributes.filterKeys { it !in specialKeys }
+                val bodyMap: Map<String, AttributeValue> = attributes.filterKeys { it !in systemAttributes }
                 val json: JsonNode = jsonAttributeConverter.transformTo(AttributeValue.fromM(bodyMap))
                 json.toString()
             }

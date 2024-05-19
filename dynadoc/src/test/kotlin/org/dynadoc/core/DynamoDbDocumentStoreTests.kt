@@ -19,6 +19,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue
 import software.amazon.awssdk.services.dynamodb.model.DynamoDbException
 import java.net.URI
 import java.util.*
@@ -27,9 +28,10 @@ import kotlin.random.asKotlinRandom
 
 @Testcontainers
 class DynamoDbDocumentStoreTests {
-    private lateinit var ids: List<DocumentKey>
-    private lateinit var store: DynamoDbDocumentStore
-    private var longJson: String = "{\"key\":\"${"a".repeat(1024 * 1024)}\"}"
+    private val partitionKey = UUID.randomUUID().toString()
+    private val ids: List<DocumentKey> = (0..10).map { i -> DocumentKey("${partitionKey}_$i", "0000") }
+    private val store: DynamoDbDocumentStore = DynamoDbDocumentStore(client, "tests")
+    private val longJson: String = "{\"key\":\"${"a".repeat(1024 * 1024)}\"}"
 
     //region updateDocuments
 
@@ -292,6 +294,69 @@ class DynamoDbDocumentStoreTests {
 
     //endregion
 
+    //region query
+
+    @Test
+    fun query_filterSortKey() = runBlocking {
+        val documents = (0..9).map { i ->
+            Document(DocumentKey(partitionKey, "ABC0$i"), "{\"a\":$i}", 0)
+        }
+        store.updateDocuments(*documents.toTypedArray())
+
+        val result =
+            store.query {
+                keyConditionExpression("partition_key = :pk AND sort_key BETWEEN :start AND :end")
+                expressionAttributeValues(mapOf(
+                    ":pk" to AttributeValue.fromS(partitionKey),
+                    ":start" to AttributeValue.fromS("ABC03"),
+                    ":end" to AttributeValue.fromS("ABC05")
+                ))
+            }.toList()
+
+        assertDocuments(result, documents.slice(3..5))
+    }
+
+    @Test
+    fun query_filterNonKey() = runBlocking {
+        val documents = (0..9).map { i ->
+            Document(DocumentKey(partitionKey, "ABC0$i"), "{\"a\":$i}", 0)
+        }
+        store.updateDocuments(*documents.toTypedArray())
+
+        val result =
+            store.query {
+                keyConditionExpression("partition_key = :pk")
+                filterExpression("a > :start")
+                expressionAttributeValues(mapOf(
+                    ":pk" to AttributeValue.fromS(partitionKey),
+                    ":start" to AttributeValue.fromN("4"),
+                ))
+            }.toList()
+
+        assertDocuments(result, documents.slice(5..9))
+    }
+
+    @Test
+    fun query_pagination() = runBlocking {
+        val string100Kb: String = "a".repeat(100 * 1024)
+        val documents = (100..199).map { i ->
+            Document(DocumentKey(partitionKey, "ABC0$i"), "{\"b\":\"$string100Kb\"}", 0)
+        }
+        documents.forEach { document -> store.updateDocuments(document) }
+
+        val result =
+            store.query {
+                keyConditionExpression("partition_key = :pk")
+                expressionAttributeValues(mapOf(
+                    ":pk" to AttributeValue.fromS(partitionKey),
+                ))
+            }.toList()
+
+        assertDocuments(result, documents)
+    }
+
+    //endregion
+
     //region Helper Methods
 
     private suspend fun updateDocument(body: String?, version: Long) {
@@ -320,6 +385,14 @@ class DynamoDbDocumentStoreTests {
         }
 
         assertEquals(version, document.version)
+    }
+
+    private fun assertDocuments(actual: List<Document>, expected: List<Document>) {
+        assertEquals(expected.size, actual.size)
+
+        repeat(actual.size) { i ->
+            assertDocument(actual[i], expected[i].id, expected[i].body, 1)
+        }
     }
 
     //endregion
@@ -357,12 +430,6 @@ class DynamoDbDocumentStoreTests {
                 DynamoDbDocumentStore(client, "tests").createTable()
             }
         }
-    }
-
-    @BeforeEach
-    fun testSetup() {
-        store = DynamoDbDocumentStore(client, "tests")
-        ids = (0..10).map { i -> DocumentKey("${UUID.randomUUID()}_$i", "0000") }
     }
 
     //endregion

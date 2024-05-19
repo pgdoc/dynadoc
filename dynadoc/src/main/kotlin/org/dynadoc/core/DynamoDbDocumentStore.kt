@@ -2,11 +2,13 @@ package org.dynadoc.core
 
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.future.await
+import org.dynadoc.core.AttributeMapper.DELETED
 import org.dynadoc.core.AttributeMapper.PARTITION_KEY
 import org.dynadoc.core.AttributeMapper.SORT_KEY
 import org.dynadoc.core.AttributeMapper.VERSION
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.dynamodb.model.*
+import java.util.concurrent.CompletableFuture
 
 class DynamoDbDocumentStore(
     private val client: DynamoDbAsyncClient,
@@ -111,6 +113,33 @@ class DynamoDbDocumentStore(
         }
 
         return result.flatMapConcat { it.asFlow() }
+    }
+
+    fun query(queryRequest: QueryRequest.Builder.() -> Unit): Flow<Document> {
+        val query: QueryRequest = QueryRequest.builder()
+            .tableName(tableName)
+            .apply(queryRequest)
+            .build()
+
+        return flow {
+            var currentPageQuery = query
+
+            while (true) {
+                val response = client.query(currentPageQuery).await()
+
+                for (item in response.items()) {
+                    emit(AttributeMapper.toDocument(item))
+                }
+
+                if (!response.hasLastEvaluatedKey()) {
+                    break
+                }
+
+                currentPageQuery = query.toBuilder()
+                    .exclusiveStartKey(response.lastEvaluatedKey())
+                    .build()
+            }
+        }
     }
 
     suspend fun createTable(configure: CreateTableRequest.Builder.() -> Unit = { }) {

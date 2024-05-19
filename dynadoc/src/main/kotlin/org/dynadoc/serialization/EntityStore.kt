@@ -9,8 +9,8 @@ class EntityStore(
     private val jsonSerializer: JsonSerializer
 ) {
     suspend fun updateEntities(
-        updatedDocuments: Iterable<JsonEntity<Any>>,
-        checkedDocuments: Iterable<JsonEntity<Any>>
+        updatedDocuments: Iterable<JsonEntity<Any?>>,
+        checkedDocuments: Iterable<JsonEntity<Any?>>
     ) {
         documentStore.updateDocuments(
             updatedDocuments.map(jsonSerializer::toDocument),
@@ -33,5 +33,5 @@ suspend inline fun <reified  T : Any> EntityStore.getEntities(ids: Iterable<Docu
 suspend inline fun <reified  T : Any> EntityStore.getEntity(id: DocumentKey): JsonEntity<T?> =
     getEntities(listOf(id), T::class.java)[0]
 
-suspend fun EntityStore.updateEntities(vararg updatedEntities: JsonEntity<Any>) =
+suspend fun EntityStore.updateEntities(vararg updatedEntities: JsonEntity<Any?>) =
     updateEntities(updatedEntities.asIterable(), emptyList())
