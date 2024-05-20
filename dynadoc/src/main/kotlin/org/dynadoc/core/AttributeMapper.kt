@@ -5,7 +5,7 @@ import software.amazon.awssdk.protocols.jsoncore.JsonNode
 import software.amazon.awssdk.protocols.jsoncore.JsonNodeParser
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue
 
-internal object AttributeMapper {
+object AttributeMapper {
     const val PARTITION_KEY = "partition_key"
     const val SORT_KEY = "sort_key"
     const val VERSION = "version"

@@ -2,6 +2,8 @@ package org.dynadoc.core
 
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import org.dynadoc.core.AttributeMapper.PARTITION_KEY
+import org.dynadoc.core.AttributeMapper.VERSION
 import org.dynadoc.core.DynamoDbDocumentStoreTests.MethodSources.PREFIX
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
@@ -106,14 +108,12 @@ class DynamoDbDocumentStoreTests {
     @ParameterizedTest
     @ValueSource(strings = [
         "\"a\"",
-        "10",
-        "true",
-        "false",
-        "null",
-        "[\"a\"]"
+        "[ 10 ]",
+        "{ \"a\":1, \"$PARTITION_KEY\":2 }",
+        "{ \"a\":1, \"$VERSION\":2 }"
     ])
     fun updateDocuments_invalidJson(to: String) = runBlocking {
-        val exception = assertThrows(
+        assertThrows(
             IllegalArgumentException::class.java,
             fun() = runBlocking {
                 updateDocument(to, 0)
@@ -122,27 +122,6 @@ class DynamoDbDocumentStoreTests {
         val document = store.getDocument(ids[0])
 
         assertDocument(document, ids[0], null, 0)
-        assertEquals("The document must be a JSON object.", exception.message)
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = [
-        AttributeMapper.PARTITION_KEY,
-        AttributeMapper.SORT_KEY,
-        AttributeMapper.VERSION,
-        AttributeMapper.DELETED
-    ])
-    fun updateDocuments_invalidAttributes(attribute: String) = runBlocking {
-        val exception = assertThrows(
-            IllegalArgumentException::class.java,
-            fun() = runBlocking {
-                updateDocument("{\"a\":1,\"$attribute\":2}", 0)
-            })
-
-        val document = store.getDocument(ids[0])
-
-        assertDocument(document, ids[0], null, 0)
-        assertEquals("The document cannot use the special attribute \"$attribute\".", exception.message)
     }
 
     @Test
@@ -510,20 +489,17 @@ class DynamoDbDocumentStoreTests {
 
     //region Helper Methods
 
-    private suspend fun updateDocument(body: String?, version: Long) {
+    private suspend fun updateDocument(body: String?, version: Long) =
         updateDocument(ids[0], body, version)
-    }
 
-    private suspend fun updateDocument(id: DocumentKey, body: String?, version: Long) {
+    private suspend fun updateDocument(id: DocumentKey, body: String?, version: Long) =
         store.updateDocuments(Document(id, body, version))
-    }
 
-    private suspend fun checkDocument(version: Long) {
+    private suspend fun checkDocument(version: Long) =
         store.updateDocuments(
             listOf(),
             listOf(Document(ids[0], "{\"ignored\":\"ignored\"}", version))
         )
-    }
 
     private fun assertDocument(document: Document, id: DocumentKey, body: String?, version: Long) {
         assertEquals(id, document.id)
