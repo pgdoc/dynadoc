@@ -21,7 +21,7 @@ object AttributeMapper {
 
     fun toDocument(attributes: Map<String, AttributeValue>): Document {
         val body: String? =
-            if (attributes[DELETED]!!.bool() == true) {
+            if (attributes.getValue(DELETED).bool() == true) {
                 null
             } else {
                 val bodyMap: Map<String, AttributeValue> = attributes.filterKeys { it !in systemAttributes }
@@ -32,7 +32,7 @@ object AttributeMapper {
         return Document(
             id = parseKey(attributes),
             body = body,
-            version = attributes[VERSION]!!.n().toLong()
+            version = attributes.getValue(VERSION).n().toLong()
         )
     }
 
@@ -40,7 +40,9 @@ object AttributeMapper {
         if (document.body != null) {
             val jsonNode: JsonNode = jsonNodeParser.get().parse(document.body)
             val attributesRoot: AttributeValue = jsonAttributeConverter.transformFrom(jsonNode)
-            require(attributesRoot.type() == AttributeValue.Type.M) { "The document must be a JSON object." }
+            require(attributesRoot.type() == AttributeValue.Type.M) {
+                "The document must be a JSON object."
+            }
 
             val specialAttribute: String? = systemAttributes.firstOrNull() { key -> attributesRoot.m().containsKey(key) }
             require(specialAttribute == null) {
@@ -61,7 +63,7 @@ object AttributeMapper {
     )
 
     fun parseKey(attributes: Map<String, AttributeValue>): DocumentKey = DocumentKey(
-        partitionKey = attributes[PARTITION_KEY]!!.s(),
-        sortKey = attributes[SORT_KEY]!!.s()
+        partitionKey = attributes.getValue(PARTITION_KEY).s(),
+        sortKey = attributes.getValue(SORT_KEY).s()
     )
 }

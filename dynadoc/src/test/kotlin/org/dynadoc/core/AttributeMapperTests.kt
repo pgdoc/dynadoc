@@ -120,6 +120,23 @@ class AttributeMapperTests {
         assertEquals(2, document.version)
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = [
+        PARTITION_KEY,
+        SORT_KEY,
+        VERSION,
+        DELETED
+    ])
+    fun toDocument_missingAttribute(attribute: String) {
+        val attributes: Map<String, AttributeValue> = fromDocument(createDocument("{ \"key\": \"abc\" }"))
+
+        val exception = Assertions.assertThrows(NoSuchElementException::class.java) {
+            toDocument(attributes - attribute)
+        }
+
+        assertEquals("Key $attribute is missing in the map.", exception.message)
+    }
+
     //endregion
 
     //region Helper Methods
