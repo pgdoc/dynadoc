@@ -2,6 +2,7 @@ package org.dynadoc.core
 
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import org.dynadoc.core.DynamoDbDocumentStoreTests.MethodSources.PREFIX
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -25,18 +26,23 @@ import java.util.*
 import java.util.stream.Stream
 import kotlin.random.asKotlinRandom
 
+private const val JSON_1 = "{\"abc\":\"def\"}"
+private const val JSON_2 = "{\"ghi\":\"jkl\"}"
+private const val JSON_3 = "{\"mno\":\"pqr\"}"
+private val JSON_1MB = "{\"key\":\"${"a".repeat(1024 * 1024)}\"}"
+private val STRING_100KB = "a".repeat(100 * 1024)
+
 @Testcontainers
 class DynamoDbDocumentStoreTests {
     private val store: DynamoDbDocumentStore = DynamoDbDocumentStore(client, "tests")
 
-    private val partitionKey = UUID.randomUUID().toString()
+    private val partitionKey: String = UUID.randomUUID().toString()
     private val ids: List<DocumentKey> = (0..10).map { i -> DocumentKey("${partitionKey}_$i", "0000") }
-    private val longJson: String = "{\"key\":\"${"a".repeat(1024 * 1024)}\"}"
-    private val string100Kb: String = "a".repeat(100 * 1024)
+
     //region updateDocuments
 
     @ParameterizedTest
-    @MethodSource("org.dynadoc.core.MethodSources#updateDocuments_oneArgument")
+    @MethodSource("$PREFIX#updateDocuments_oneArgument")
     fun updateDocuments_emptyToValue(to: String?) = runBlocking {
         updateDocument(to, 0)
 
@@ -46,7 +52,7 @@ class DynamoDbDocumentStoreTests {
     }
 
     @ParameterizedTest
-    @MethodSource("org.dynadoc.core.MethodSources#updateDocuments_twoArguments")
+    @MethodSource("$PREFIX#updateDocuments_twoArguments")
     fun updateDocuments_valueToValue(from: String?, to: String?) = runBlocking {
         updateDocument(from, 0)
         updateDocument(to, 1)
@@ -66,7 +72,7 @@ class DynamoDbDocumentStoreTests {
     }
 
     @ParameterizedTest
-    @MethodSource("org.dynadoc.core.MethodSources#updateDocuments_oneArgument")
+    @MethodSource("$PREFIX#updateDocuments_oneArgument")
     fun updateDocuments_valueToCheck(from: String?) = runBlocking {
         updateDocument(from, 0)
         checkDocument(1)
@@ -77,7 +83,7 @@ class DynamoDbDocumentStoreTests {
     }
 
     @ParameterizedTest
-    @MethodSource("org.dynadoc.core.MethodSources#updateDocuments_oneArgument")
+    @MethodSource("$PREFIX#updateDocuments_oneArgument")
     fun updateDocuments_checkToValue(to: String?) = runBlocking {
         checkDocument(0)
         updateDocument(to, 0)
@@ -97,12 +103,34 @@ class DynamoDbDocumentStoreTests {
         assertDocument(document, ids[0], null, 0)
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = [
+        "\"a\"",
+        "10",
+        "true",
+        "false",
+        "null",
+        "[\"a\"]"
+    ])
+    fun updateDocuments_invalidJson(to: String) = runBlocking {
+        val exception = assertThrows(
+            IllegalArgumentException::class.java,
+            fun() = runBlocking {
+                updateDocument(to, 0)
+            })
+
+        val document = store.getDocument(ids[0])
+
+        assertDocument(document, ids[0], null, 0)
+        assertEquals("The document must be a JSON object.", exception.message)
+    }
+
     @Test
     fun updateDocuments_genericError() = runBlocking {
         assertThrows(
             DynamoDbException::class.java,
             fun() = runBlocking {
-                updateDocument(longJson, 0)
+                updateDocument(JSON_1MB, 0)
             })
 
         val document = store.getDocument(ids[0])
@@ -119,7 +147,7 @@ class DynamoDbDocumentStoreTests {
                 if (checkOnly) {
                     checkDocument(10)
                 } else {
-                    updateDocument("{\"abc\":\"def\"}", 10)
+                    updateDocument(JSON_2, 10)
                 }
             })
 
@@ -132,7 +160,7 @@ class DynamoDbDocumentStoreTests {
     @ParameterizedTest
     @ValueSource(booleans = [true, false])
     fun updateDocuments_conflictWrongVersion(checkOnly: Boolean) = runBlocking {
-        updateDocument("{\"abc\":\"def\"}", 0)
+        updateDocument(JSON_1, 0)
 
         val exception = assertThrows(
             UpdateConflictException::class.java,
@@ -140,20 +168,20 @@ class DynamoDbDocumentStoreTests {
                 if (checkOnly) {
                     checkDocument(10)
                 } else {
-                    updateDocument("{\"abc\":\"def\"}", 10)
+                    updateDocument(JSON_2, 10)
                 }
             })
 
         val document = store.getDocument(ids[0])
 
-        assertDocument(document, ids[0], "{\"abc\":\"def\"}", 1);
+        assertDocument(document, ids[0], JSON_1, 1);
         assertEquals(ids[0], exception.id)
     }
 
     @ParameterizedTest
     @ValueSource(booleans = [true, false])
     fun updateDocuments_conflictDocumentAlreadyExists(checkOnly: Boolean) = runBlocking {
-        updateDocument("{\"abc\":\"def\"}", 0)
+        updateDocument(JSON_1, 0)
 
         val exception = assertThrows(
             UpdateConflictException::class.java,
@@ -161,20 +189,20 @@ class DynamoDbDocumentStoreTests {
                 if (checkOnly) {
                     checkDocument(0)
                 } else {
-                    updateDocument("{\"abc\":\"def\"}", 0)
+                    updateDocument(JSON_2, 0)
                 }
             })
 
         val document = store.getDocument(ids[0])
 
-        assertDocument(document, ids[0], "{\"abc\":\"def\"}", 1);
+        assertDocument(document, ids[0], JSON_1, 1);
         assertEquals(ids[0], exception.id)
     }
 
     @Test
     fun updateDocuments_multipleDocumentsSuccess() = runBlocking {
-        updateDocument(ids[0], "{\"abc\":\"def\"}", 0)
-        updateDocument(ids[1], "{\"ghi\":\"jkl\"}", 0)
+        updateDocument(ids[0], JSON_1, 0)
+        updateDocument(ids[1], JSON_2, 0)
 
         store.updateDocuments(
             listOf(
@@ -193,7 +221,7 @@ class DynamoDbDocumentStoreTests {
         val document4 = store.getDocument(ids[3])
 
         assertDocument(document1, ids[0], "{\"v\":\"1\"}", 2)
-        assertDocument(document2, ids[1], "{\"ghi\":\"jkl\"}", 1)
+        assertDocument(document2, ids[1], JSON_2, 1)
         assertDocument(document3, ids[2], "{\"v\":\"2\"}", 1)
         assertDocument(document4, ids[3], null, 0)
     }
@@ -201,20 +229,20 @@ class DynamoDbDocumentStoreTests {
     @ParameterizedTest
     @ValueSource(booleans = [true, false])
     fun updateDocuments_multipleDocumentsConflict(checkOnly: Boolean) = runBlocking {
-        updateDocument(ids[0], "{\"abc\":\"def\"}", 0)
+        updateDocument(ids[0], JSON_1, 0)
 
         val exception = assertThrows(
             UpdateConflictException::class.java,
             fun() = runBlocking {
                 if (checkOnly) {
                     store.updateDocuments(
-                        listOf(Document(ids[0], "{\"ghi\":\"jkl\"}", 1)),
-                        listOf(Document(ids[1], "{\"mno\":\"pqr\"}", 10))
+                        listOf(Document(ids[0], JSON_2, 1)),
+                        listOf(Document(ids[1], JSON_3, 10))
                     )
                 } else {
                     store.updateDocuments(
-                        Document(ids[0], "{\"ghi\":\"jkl\"}", 1),
-                        Document(ids[1], "{\"mno\":\"pqr\"}", 10)
+                        Document(ids[0], JSON_2, 1),
+                        Document(ids[1], JSON_3, 10)
                     )
                 }
             })
@@ -222,28 +250,28 @@ class DynamoDbDocumentStoreTests {
         val document1 = store.getDocument(ids[0])
         val document2 = store.getDocument(ids[1])
 
-        assertDocument(document1, ids[0], "{\"abc\":\"def\"}", 1)
+        assertDocument(document1, ids[0], JSON_1, 1)
         assertDocument(document2, ids[1], null, 0)
         assertEquals(ids[1], exception.id)
     }
 
     @Test
     fun updateDocuments_multipleDocumentsGenericError() = runBlocking {
-        updateDocument(ids[0], "{\"abc\":\"def\"}", 0)
+        updateDocument(ids[0], JSON_1, 0)
 
         assertThrows(
             DynamoDbException::class.java,
             fun() = runBlocking {
                 store.updateDocuments(
-                    Document(ids[0], "{\"ghi\":\"jkl\"}", 1),
-                    Document(ids[1], longJson, 0)
+                    Document(ids[0], JSON_2, 1),
+                    Document(ids[1], JSON_1MB, 0)
                 )
             })
 
         val document1 = store.getDocument(ids[0])
         val document2 = store.getDocument(ids[1])
 
-        assertDocument(document1, ids[0], "{\"abc\":\"def\"}", 1)
+        assertDocument(document1, ids[0], JSON_1, 1)
         assertDocument(document2, ids[1], null, 0)
     }
 
@@ -253,26 +281,26 @@ class DynamoDbDocumentStoreTests {
 
     @Test
     fun getDocuments_singleDocument() = runBlocking {
-        updateDocument("{\"abc\":\"def\"}", 0)
+        updateDocument(JSON_1, 0)
 
         val documents: List<Document> = store.getDocuments(listOf(ids[0])).toList()
 
         assertEquals(1, documents.size)
-        assertDocument(documents[0], ids[0], "{\"abc\":\"def\"}", 1)
+        assertDocument(documents[0], ids[0], JSON_1, 1)
     }
 
     @Test
     fun getDocuments_multipleDocuments() = runBlocking {
-        updateDocument(ids[0], "{\"abc\":\"def\"}", 0)
-        updateDocument(ids[1], "{\"ghi\":\"jkl\"}", 0)
+        updateDocument(ids[0], JSON_1, 0)
+        updateDocument(ids[1], JSON_2, 0)
 
         val documents: List<Document> = store.getDocuments(listOf(ids[0], ids[2], ids[0], ids[1])).toList()
 
         assertEquals(4, documents.size)
-        assertDocument(documents[0], ids[0], "{\"abc\":\"def\"}", 1)
+        assertDocument(documents[0], ids[0], JSON_1, 1)
         assertDocument(documents[1], ids[2], null, 0)
-        assertDocument(documents[2], ids[0], "{\"abc\":\"def\"}", 1)
-        assertDocument(documents[3], ids[1], "{\"ghi\":\"jkl\"}", 1)
+        assertDocument(documents[2], ids[0], JSON_1, 1)
+        assertDocument(documents[3], ids[1], JSON_2, 1)
     }
 
     @Test
@@ -283,7 +311,7 @@ class DynamoDbDocumentStoreTests {
     }
 
     @ParameterizedTest
-    @MethodSource("org.dynadoc.core.MethodSources#getDocuments_jsonDeserialization")
+    @MethodSource("$PREFIX#getDocuments_jsonDeserialization")
     fun getDocuments_jsonDeserialization(json: String) = runBlocking {
         updateDocument(ids[0], json, 0)
 
@@ -339,7 +367,7 @@ class DynamoDbDocumentStoreTests {
     @Test
     fun query_pagination() = runBlocking {
         val documents = (100..199).map { i ->
-            Document(DocumentKey(partitionKey, "ABC0$i"), "{\"b\":\"$string100Kb\"}", 0)
+            Document(DocumentKey(partitionKey, "ABC0$i"), "{\"b\":\"$STRING_100KB\"}", 0)
         }
         documents.forEach { document -> store.updateDocuments(document) }
 
@@ -388,7 +416,7 @@ class DynamoDbDocumentStoreTests {
         val documents = (100..199).map { i ->
             Document(
                 id = DocumentKey("${partitionKey}_$i", "0000"),
-                body = "{\"b\":\"$string100Kb\"}",
+                body = "{\"b\":\"$STRING_100KB\"}",
                 version = 0
             )
         }
@@ -404,6 +432,58 @@ class DynamoDbDocumentStoreTests {
             }.toList()
 
         assertDocuments(result.sortedBy { it.id.partitionKey }, documents.slice(20..80))
+    }
+
+    //endregion MethodSources
+
+    object MethodSources {
+        const val PREFIX: String = "org.dynadoc.core.DynamoDbDocumentStoreTests\$MethodSources"
+
+        @JvmStatic
+        fun updateDocuments_oneArgument(): Stream<String?> {
+            return Stream.of(
+                JSON_1,
+                null
+            )
+        }
+
+        @JvmStatic
+        fun updateDocuments_twoArguments(): Stream<Arguments> {
+            return Stream.of(
+                Arguments.of(JSON_1, JSON_2),
+                Arguments.of(null, JSON_2),
+                Arguments.of(JSON_1, null),
+                Arguments.of(null, null)
+            )
+        }
+
+        @JvmStatic
+        fun getDocuments_jsonDeserialization(): Stream<String> {
+            val scalars: List<String> = listOf(
+                "1234567890.0987654321",
+                "\"text\"",
+                "true",
+                "false",
+                "null"
+            )
+
+            val firstLevel: List<String> = scalars.map {
+                "{ \"a\": $it }"
+            } + "{ }"
+
+            val nestedObjects = firstLevel.map {
+                "{ \"b\": $it }"
+            }
+
+            val arrayOfObjects = (scalars + firstLevel).map {
+                val repeat = "$it, $it, $it"
+                "{ \"b\": [ $repeat ] }"
+            }
+
+            val mixedArray = "{ \"c\": [ ${(scalars + firstLevel).joinToString()} ] }"
+
+            return (firstLevel + nestedObjects + arrayOfObjects + mixedArray).stream()
+        }
     }
 
     //endregion
@@ -484,52 +564,4 @@ class DynamoDbDocumentStoreTests {
     }
 
     //endregion
-}
-
-object MethodSources {
-    @JvmStatic
-    fun updateDocuments_oneArgument(): Stream<String?> {
-        return Stream.of(
-            "{\"abc\":\"def\"}",
-            null
-        )
-    }
-
-    @JvmStatic
-    fun updateDocuments_twoArguments(): Stream<Arguments> {
-        return Stream.of(
-            Arguments.of("{\"abc\":\"def\"}", "{\"ghi\":\"jkl\"}"),
-            Arguments.of(null, "{\"ghi\":\"jkl\"}"),
-            Arguments.of("{\"abc\":\"def\"}", null),
-            Arguments.of(null, null)
-        )
-    }
-
-    @JvmStatic
-    fun getDocuments_jsonDeserialization(): Stream<String> {
-        val scalars: List<String> = listOf(
-            "1234567890.0987654321",
-            "\"text\"",
-            "true",
-            "false",
-            "null"
-        )
-
-        val firstLevel: List<String> = scalars.map {
-            "{ \"a\": $it }"
-        } + "{ }"
-
-        val nestedObjects = firstLevel.map {
-            "{ \"b\": $it }"
-        }
-
-        val arrayOfObjects = (scalars + firstLevel).map {
-            val repeat = "$it, $it, $it"
-            "{ \"b\": [ $repeat ] }"
-        }
-
-        val mixedArray = "{ \"c\": [ ${(scalars + firstLevel).joinToString()} ] }"
-
-        return (firstLevel + nestedObjects + arrayOfObjects + mixedArray).stream()
-    }
 }

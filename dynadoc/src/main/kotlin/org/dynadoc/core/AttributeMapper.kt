@@ -40,6 +40,7 @@ internal object AttributeMapper {
         if (document.body != null) {
             val jsonNode: JsonNode = jsonNodeParser.get().parse(document.body)
             val attributesRoot: AttributeValue = jsonAttributeConverter.transformFrom(jsonNode)
+            require(attributesRoot.type() == AttributeValue.Type.M) { "The document must be a JSON object." }
 
             putAll(attributesRoot.m())
         }
