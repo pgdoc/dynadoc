@@ -42,6 +42,11 @@ internal object AttributeMapper {
             val attributesRoot: AttributeValue = jsonAttributeConverter.transformFrom(jsonNode)
             require(attributesRoot.type() == AttributeValue.Type.M) { "The document must be a JSON object." }
 
+            val specialAttribute: String? = systemAttributes.firstOrNull() { key -> attributesRoot.m().containsKey(key) }
+            require(specialAttribute == null) {
+                "The document cannot use the special attribute \"$specialAttribute\"."
+            }
+
             putAll(attributesRoot.m())
         }
 

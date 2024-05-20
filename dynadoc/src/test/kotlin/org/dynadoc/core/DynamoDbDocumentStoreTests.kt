@@ -125,6 +125,26 @@ class DynamoDbDocumentStoreTests {
         assertEquals("The document must be a JSON object.", exception.message)
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = [
+        AttributeMapper.PARTITION_KEY,
+        AttributeMapper.SORT_KEY,
+        AttributeMapper.VERSION,
+        AttributeMapper.DELETED
+    ])
+    fun updateDocuments_invalidAttributes(attribute: String) = runBlocking {
+        val exception = assertThrows(
+            IllegalArgumentException::class.java,
+            fun() = runBlocking {
+                updateDocument("{\"a\":1,\"$attribute\":2}", 0)
+            })
+
+        val document = store.getDocument(ids[0])
+
+        assertDocument(document, ids[0], null, 0)
+        assertEquals("The document cannot use the special attribute \"$attribute\".", exception.message)
+    }
+
     @Test
     fun updateDocuments_genericError() = runBlocking {
         assertThrows(
