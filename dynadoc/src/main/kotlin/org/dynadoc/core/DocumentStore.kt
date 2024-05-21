@@ -11,7 +11,6 @@ interface DocumentStore {
     fun getDocuments(ids: Iterable<DocumentKey>): Flow<Document>
 }
 
-
 class UpdateConflictException(
     val id: DocumentKey
 ): RuntimeException("The object $id has been modified.")

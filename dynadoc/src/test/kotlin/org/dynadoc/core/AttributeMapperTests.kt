@@ -1,5 +1,6 @@
 package org.dynadoc.core
 
+import org.dynadoc.assertDocument
 import org.dynadoc.core.AttributeMapper.DELETED
 import org.dynadoc.core.AttributeMapper.PARTITION_KEY
 import org.dynadoc.core.AttributeMapper.SORT_KEY
@@ -8,13 +9,13 @@ import org.dynadoc.core.AttributeMapper.fromDocument
 import org.dynadoc.core.AttributeMapper.toDocument
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
-import org.skyscreamer.jsonassert.JSONAssert
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue
+
+private val id: DocumentKey = DocumentKey("PK", "SK")
 
 class AttributeMapperTests {
     //region fromDocument
@@ -104,9 +105,7 @@ class AttributeMapperTests {
 
         val document: Document = toDocument(attributes)
 
-        assertEquals(DocumentKey("PK", "SK"), document.id)
-        JSONAssert.assertEquals(json, document.body, true)
-        assertEquals(2, document.version)
+        assertDocument(document, id, json, 2)
     }
 
     @Test
@@ -115,9 +114,7 @@ class AttributeMapperTests {
 
         val document: Document = toDocument(attributes)
 
-        assertEquals(DocumentKey("PK", "SK"), document.id)
-        assertNull(null, document.body)
-        assertEquals(2, document.version)
+        assertDocument(document, id, null, 2)
     }
 
     @ParameterizedTest
@@ -141,11 +138,7 @@ class AttributeMapperTests {
 
     //region Helper Methods
 
-    private fun createDocument(body: String?) = Document(
-        id = DocumentKey("PK", "SK"),
-        body = body,
-        version = 1
-    )
+    private fun createDocument(body: String?) = Document(id, body, 1)
 
     //endregion
 }

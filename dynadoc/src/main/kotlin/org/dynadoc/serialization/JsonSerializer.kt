@@ -8,6 +8,7 @@ interface JsonSerializer {
     fun <T : Any> deserialize(json: String, clazz: Class<T>): T
 }
 
+
 fun JsonSerializer.toDocument(jsonEntity: JsonEntity<Any?>): Document =
     Document(
         id = jsonEntity.id,

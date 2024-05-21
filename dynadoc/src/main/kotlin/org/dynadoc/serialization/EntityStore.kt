@@ -13,8 +13,11 @@ class EntityStore(
         checkedDocuments: Iterable<JsonEntity<Any?>>
     ) {
         documentStore.updateDocuments(
-            updatedDocuments.map(jsonSerializer::toDocument),
-            checkedDocuments.map(jsonSerializer::toDocument)
+            updatedDocuments = updatedDocuments
+                .map(jsonSerializer::toDocument),
+            checkedDocuments = checkedDocuments
+                .map { entity -> entity.copy(entity = null) }
+                .map(jsonSerializer::toDocument)
         )
     }
 
@@ -26,6 +29,7 @@ class EntityStore(
         return result.map { jsonSerializer.fromDocument(it, clazz) }
     }
 }
+
 
 suspend inline fun <reified  T : Any> EntityStore.getEntities(ids: Iterable<DocumentKey>): List<JsonEntity<T?>> =
     getEntities(ids, T::class.java)

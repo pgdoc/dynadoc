@@ -2,6 +2,7 @@ package org.dynadoc.core
 
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import org.dynadoc.assertDocument
 import org.dynadoc.core.AttributeMapper.PARTITION_KEY
 import org.dynadoc.core.AttributeMapper.VERSION
 import org.dynadoc.core.DynamoDbDocumentStoreTests.MethodSources.PREFIX
@@ -500,19 +501,6 @@ class DynamoDbDocumentStoreTests {
             listOf(),
             listOf(Document(ids[0], "{\"ignored\":\"ignored\"}", version))
         )
-
-    private fun assertDocument(document: Document, id: DocumentKey, body: String?, version: Long) {
-        assertEquals(id, document.id)
-
-        if (body == null) {
-            assertNull(document.body)
-        } else {
-            assertNotNull(document.body)
-            JSONAssert.assertEquals(body, document.body, true)
-        }
-
-        assertEquals(version, document.version)
-    }
 
     private fun assertDocuments(actual: List<Document>, expected: List<Document>) {
         assertEquals(expected.size, actual.size)
