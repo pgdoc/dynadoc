@@ -21,20 +21,17 @@ class EntityStore(
         )
     }
 
-    suspend fun <T : Any> getEntities(
-        ids: Iterable<DocumentKey>,
-        clazz: Class<T>
-    ): List<JsonEntity<T?>> {
+    suspend fun <T : Any> getEntities(ids: Iterable<DocumentKey>, clazz: Class<T>): List<JsonEntity<T?>> {
         val result = documentStore.getDocuments(ids).toList()
         return result.map { jsonSerializer.fromDocument(it, clazz) }
     }
 }
 
 
-suspend inline fun <reified  T : Any> EntityStore.getEntities(ids: Iterable<DocumentKey>): List<JsonEntity<T?>> =
+suspend inline fun <reified T : Any> EntityStore.getEntities(ids: Iterable<DocumentKey>): List<JsonEntity<T?>> =
     getEntities(ids, T::class.java)
 
-suspend inline fun <reified  T : Any> EntityStore.getEntity(id: DocumentKey): JsonEntity<T?> =
+suspend inline fun <reified T : Any> EntityStore.getEntity(id: DocumentKey): JsonEntity<T?> =
     getEntities(listOf(id), T::class.java)[0]
 
 suspend fun EntityStore.updateEntities(vararg updatedEntities: JsonEntity<Any?>) =

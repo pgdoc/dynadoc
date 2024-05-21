@@ -23,6 +23,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers:1.19.8")
     testImplementation("org.testcontainers:junit-jupiter:1.19.8")
     testImplementation("org.skyscreamer:jsonassert:1.5.1")
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

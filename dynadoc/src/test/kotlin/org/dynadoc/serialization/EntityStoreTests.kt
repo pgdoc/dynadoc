@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 
-val ids = (0..9).map { i -> DocumentKey("document_$i", "KEY") }
-val idsNull = (0..9).map { i -> DocumentKey("document_$i", "NULL") }
+private val ids = (0..9).map { i -> DocumentKey("document_$i", "KEY") }
+private val idsNull = (0..9).map { i -> DocumentKey("document_$i", "NULL") }
 
 class EntityStoreTests {
     private val documentStore: DocumentStore = mockk {

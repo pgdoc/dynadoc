@@ -9,6 +9,7 @@ import org.dynadoc.core.DynamoDbDocumentStoreTests.MethodSources.PREFIX
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -114,8 +115,7 @@ class DynamoDbDocumentStoreTests {
         "{ \"a\":1, \"$VERSION\":2 }"
     ])
     fun updateDocuments_invalidJson(to: String) = runBlocking {
-        assertThrows(
-            IllegalArgumentException::class.java,
+        assertThrows<IllegalArgumentException>(
             fun() = runBlocking {
                 updateDocument(to, 0)
             })
@@ -127,8 +127,7 @@ class DynamoDbDocumentStoreTests {
 
     @Test
     fun updateDocuments_genericError() = runBlocking {
-        assertThrows(
-            DynamoDbException::class.java,
+        assertThrows<DynamoDbException>(
             fun() = runBlocking {
                 updateDocument(JSON_1MB, 0)
             })
@@ -141,8 +140,7 @@ class DynamoDbDocumentStoreTests {
     @ParameterizedTest
     @ValueSource(booleans = [true, false])
     fun updateDocuments_conflictDocumentDoesNotExist(checkOnly: Boolean) = runBlocking {
-        val exception = assertThrows(
-            UpdateConflictException::class.java,
+        val exception = assertThrows<UpdateConflictException>(
             fun() = runBlocking {
                 if (checkOnly) {
                     checkDocument(10)
@@ -162,8 +160,7 @@ class DynamoDbDocumentStoreTests {
     fun updateDocuments_conflictWrongVersion(checkOnly: Boolean) = runBlocking {
         updateDocument(JSON_1, 0)
 
-        val exception = assertThrows(
-            UpdateConflictException::class.java,
+        val exception = assertThrows<UpdateConflictException>(
             fun() = runBlocking {
                 if (checkOnly) {
                     checkDocument(10)
@@ -183,8 +180,7 @@ class DynamoDbDocumentStoreTests {
     fun updateDocuments_conflictDocumentAlreadyExists(checkOnly: Boolean) = runBlocking {
         updateDocument(JSON_1, 0)
 
-        val exception = assertThrows(
-            UpdateConflictException::class.java,
+        val exception = assertThrows<UpdateConflictException>(
             fun() = runBlocking {
                 if (checkOnly) {
                     checkDocument(0)
@@ -231,8 +227,7 @@ class DynamoDbDocumentStoreTests {
     fun updateDocuments_multipleDocumentsConflict(checkOnly: Boolean) = runBlocking {
         updateDocument(ids[0], JSON_1, 0)
 
-        val exception = assertThrows(
-            UpdateConflictException::class.java,
+        val exception = assertThrows<UpdateConflictException>(
             fun() = runBlocking {
                 if (checkOnly) {
                     store.updateDocuments(
@@ -259,8 +254,7 @@ class DynamoDbDocumentStoreTests {
     fun updateDocuments_multipleDocumentsGenericError() = runBlocking {
         updateDocument(ids[0], JSON_1, 0)
 
-        assertThrows(
-            DynamoDbException::class.java,
+        assertThrows<DynamoDbException>(
             fun() = runBlocking {
                 store.updateDocuments(
                     Document(ids[0], JSON_2, 1),

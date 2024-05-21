@@ -7,9 +7,9 @@ import org.dynadoc.core.AttributeMapper.SORT_KEY
 import org.dynadoc.core.AttributeMapper.VERSION
 import org.dynadoc.core.AttributeMapper.fromDocument
 import org.dynadoc.core.AttributeMapper.toDocument
-import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
@@ -64,7 +64,7 @@ class AttributeMapperTests {
         "[\"a\"]"
     ])
     fun fromDocument_invalidJson(json: String) {
-        val exception = Assertions.assertThrows(IllegalArgumentException::class.java) {
+        val exception = assertThrows<IllegalArgumentException> {
             fromDocument(createDocument(json))
         }
 
@@ -79,7 +79,7 @@ class AttributeMapperTests {
         DELETED
     ])
     fun fromDocument_invalidAttributes(attribute: String) {
-        val exception = Assertions.assertThrows(IllegalArgumentException::class.java) {
+        val exception = assertThrows<IllegalArgumentException> {
             fromDocument(createDocument("{\"a\":1,\"$attribute\":2}"))
         }
 
@@ -127,7 +127,7 @@ class AttributeMapperTests {
     fun toDocument_missingAttribute(attribute: String) {
         val attributes: Map<String, AttributeValue> = fromDocument(createDocument("{ \"key\": \"abc\" }"))
 
-        val exception = Assertions.assertThrows(NoSuchElementException::class.java) {
+        val exception = assertThrows<NoSuchElementException> {
             toDocument(attributes - attribute)
         }
 
