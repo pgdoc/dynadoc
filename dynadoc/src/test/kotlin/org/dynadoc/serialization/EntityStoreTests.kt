@@ -4,12 +4,13 @@ import io.mockk.*
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.runBlocking
 import org.dynadoc.assertEntity
+import org.dynadoc.assertUpdateDocuments
 import org.dynadoc.core.Document
 import org.dynadoc.core.DocumentKey
 import org.dynadoc.core.DocumentStore
 import org.dynadoc.serialization.TestSerializer.jsonFor
 import org.junit.jupiter.api.Test
-import kotlin.test.assertContentEquals
+import java.math.BigDecimal
 import kotlin.test.assertEquals
 
 private val ids = (0..9).map { i -> DocumentKey("document_$i", "KEY") }
@@ -40,12 +41,9 @@ class EntityStoreTests {
 
         store.updateEntities(document)
 
-        coVerify {
-            documentStore.updateDocuments(
-                updatedDocuments = verifyDocuments(Document(ids[0], jsonFor("abc"), 1)),
-                checkedDocuments = eq(emptyList())
-            )
-        }
+        documentStore.assertUpdateDocuments(
+            updated = listOf(Document(ids[0], jsonFor("abc"), 1))
+        )
     }
 
     @Test
@@ -54,12 +52,9 @@ class EntityStoreTests {
 
         store.updateEntities(document)
 
-        coVerify {
-            documentStore.updateDocuments(
-                updatedDocuments = verifyDocuments(Document(ids[0], null, 1)),
-                checkedDocuments = eq(emptyList())
-            )
-        }
+        documentStore.assertUpdateDocuments(
+            updated = listOf(Document(ids[0], null, 1))
+        )
     }
 
     @Test
@@ -68,12 +63,9 @@ class EntityStoreTests {
 
         store.updateEntities(emptyList(), listOf(document))
 
-        coVerify {
-            documentStore.updateDocuments(
-                updatedDocuments = eq(emptyList()),
-                checkedDocuments = verifyDocuments(Document(ids[0], null, 1))
-            )
-        }
+        documentStore.assertUpdateDocuments(
+            checked = listOf(Document(ids[0], null, 1))
+        )
     }
 
     @Test
@@ -85,22 +77,20 @@ class EntityStoreTests {
             ),
             listOf(
                 JsonEntity(ids[2], 5.5f, 3),
-                JsonEntity(ids[3], 500L, 4)
+                JsonEntity(ids[3], BigDecimal("21"), 4)
             )
         )
 
-        coVerify {
-            documentStore.updateDocuments(
-                updatedDocuments = verifyDocuments(
-                    Document(ids[0], jsonFor("abc"), 1),
-                    Document(ids[1], null, 2)
-                ),
-                checkedDocuments = verifyDocuments(
-                    Document(ids[2], null, 3),
-                    Document(ids[3], null, 4)
-                )
+        documentStore.assertUpdateDocuments(
+            updated = listOf(
+                Document(ids[0], jsonFor("abc"), 1),
+                Document(ids[1], null, 2)
+            ),
+            checked = listOf(
+                Document(ids[2], null, 3),
+                Document(ids[3], null, 4)
             )
-        }
+        )
     }
 
     //endregion
@@ -130,15 +120,6 @@ class EntityStoreTests {
 
         assertEntity(result, idsNull[0], null, 1)
     }
-
-    //endregion
-
-    //region Helper Methods
-
-    private fun MockKVerificationScope.verifyDocuments(vararg expected: Document): Iterable<Document> =
-        coWithArg {
-            assertContentEquals(expected.toList(), it.toList())
-        }
 
     //endregion
 }
