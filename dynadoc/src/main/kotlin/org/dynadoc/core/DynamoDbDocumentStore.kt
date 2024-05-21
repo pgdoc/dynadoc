@@ -8,6 +8,9 @@ import org.dynadoc.core.AttributeMapper.VERSION
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.dynamodb.model.*
 
+/**
+ * Represents an implementation of the [DocumentStore] interface that relies on DynamoDB for persistence.
+ */
 class DynamoDbDocumentStore(
     private val client: DynamoDbAsyncClient,
     private val tableName: String

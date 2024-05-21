@@ -4,10 +4,16 @@ import kotlinx.coroutines.flow.toList
 import org.dynadoc.core.DocumentKey
 import org.dynadoc.core.DocumentStore
 
+/**
+ * Represents a service object used to retrieve and modify documents represented as [JsonEntity] objects.
+ */
 class EntityStore(
     private val documentStore: DocumentStore,
     private val jsonSerializer: JsonSerializer
 ) {
+    /**
+     * Updates atomically the body of multiple documents represented as [JsonEntity] objects.
+     */
     suspend fun updateEntities(
         updatedDocuments: Iterable<JsonEntity<Any?>> = emptyList(),
         checkedDocuments: Iterable<JsonEntity<Any?>> = emptyList()
@@ -21,6 +27,9 @@ class EntityStore(
         )
     }
 
+    /**
+     * Retrieves a document given its ID, represented as a [JsonEntity] object.
+     */
     suspend fun <T : Any> getEntities(ids: Iterable<DocumentKey>, clazz: Class<T>): List<JsonEntity<T?>> {
         val result = documentStore.getDocuments(ids).toList()
         return result.map { jsonSerializer.fromDocument(it, clazz) }

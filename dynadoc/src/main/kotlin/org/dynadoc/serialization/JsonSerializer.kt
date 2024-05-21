@@ -3,8 +3,14 @@ package org.dynadoc.serialization
 import org.dynadoc.core.Document
 
 interface JsonSerializer {
+    /**
+     * Serializes the specified object to a JSON string.
+     */
     fun serialize(entity: Any): String
 
+    /**
+     * Deserializes a JSON string to the specified type.
+     */
     fun <T : Any> deserialize(json: String, clazz: Class<T>): T
 }
 
