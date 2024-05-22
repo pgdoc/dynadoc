@@ -95,7 +95,7 @@ class DynamoDbDocumentStore(
                 ))
             .build()
 
-        val result: Flow<List<Document>> = flow {
+        return flow {
             val responses = client.batchGetItem(request).await().responses()
 
             if (responses != null) {
@@ -109,11 +109,9 @@ class DynamoDbDocumentStore(
                         documents[id] ?: Document(id, null, 0)
                     }
 
-                flowOf(result).collect(this)
+                result.asFlow().collect(this)
             }
         }
-
-        return result.flatMapConcat { it.asFlow() }
     }
 
     fun query(queryRequest: QueryRequest.Builder.() -> Unit): Flow<Document> {
