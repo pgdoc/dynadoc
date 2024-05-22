@@ -4,14 +4,21 @@ import software.amazon.awssdk.enhanced.dynamodb.internal.converter.attribute.Jso
 import software.amazon.awssdk.protocols.jsoncore.JsonNode
 import software.amazon.awssdk.protocols.jsoncore.JsonNodeParser
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
 
-object AttributeMapper {
-    const val PARTITION_KEY = "partition_key"
-    const val SORT_KEY = "sort_key"
-    const val VERSION = "version"
-    const val DELETED = "is_deleted"
-    val systemAttributes: Set<String> = setOf(PARTITION_KEY, SORT_KEY, VERSION, DELETED)
+const val PARTITION_KEY = "partition_key"
+const val SORT_KEY = "sort_key"
+const val VERSION = "version"
+const val DELETED = "deleted"
 
+val systemAttributes: Set<String> = setOf(PARTITION_KEY, SORT_KEY, VERSION, DELETED)
+
+class AttributeMapper(
+    private val expiration: Duration = Duration.ofDays(30),
+    private val clock: Clock = Clock.systemUTC()
+) {
     private val jsonAttributeConverter: JsonItemAttributeConverter = JsonItemAttributeConverter.create()
     private val jsonNodeParser: ThreadLocal<JsonNodeParser> = ThreadLocal.withInitial {
         JsonNodeParser.builder()
@@ -21,7 +28,7 @@ object AttributeMapper {
 
     fun toDocument(attributes: Map<String, AttributeValue>): Document {
         val body: String? =
-            if (attributes.getValue(DELETED).bool() == true) {
+            if (attributes[DELETED] != null) {
                 null
             } else {
                 val bodyMap: Map<String, AttributeValue> = attributes.filterKeys { it !in systemAttributes }
@@ -30,7 +37,7 @@ object AttributeMapper {
             }
 
         return Document(
-            id = parseKey(attributes),
+            id = toDocumentKey(attributes),
             body = body,
             version = attributes.getValue(VERSION).n().toLong()
         )
@@ -52,17 +59,21 @@ object AttributeMapper {
             putAll(attributesRoot.m())
         }
 
-        putAll(getKeyAttributes(document.id))
+        putAll(fromDocumentKey(document.id))
         put(VERSION, AttributeValue.fromN((document.version + 1).toString()))
-        put(DELETED, AttributeValue.fromBool(document.body == null))
+
+        if (document.body == null) {
+            val expiration: Instant = clock.instant() + expiration
+            put(DELETED, AttributeValue.fromN((expiration.toEpochMilli() / 1000L).toString()))
+        }
     }
 
-    fun getKeyAttributes(id: DocumentKey) = mapOf(
+    fun fromDocumentKey(id: DocumentKey) = mapOf(
         PARTITION_KEY to AttributeValue.fromS(id.partitionKey),
         SORT_KEY to AttributeValue.fromS(id.sortKey)
     )
 
-    fun parseKey(attributes: Map<String, AttributeValue>): DocumentKey = DocumentKey(
+    fun toDocumentKey(attributes: Map<String, AttributeValue>): DocumentKey = DocumentKey(
         partitionKey = attributes.getValue(PARTITION_KEY).s(),
         sortKey = attributes.getValue(SORT_KEY).s()
     )

@@ -3,8 +3,6 @@ package org.dynadoc.core
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.dynadoc.assertDocument
-import org.dynadoc.core.AttributeMapper.PARTITION_KEY
-import org.dynadoc.core.AttributeMapper.VERSION
 import org.dynadoc.core.DynamoDbDocumentStoreTests.MethodSources.PREFIX
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
@@ -14,7 +12,6 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
-import org.skyscreamer.jsonassert.JSONAssert
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.junit.jupiter.Container

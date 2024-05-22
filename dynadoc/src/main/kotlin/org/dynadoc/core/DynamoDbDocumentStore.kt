@@ -2,9 +2,6 @@ package org.dynadoc.core
 
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.future.await
-import org.dynadoc.core.AttributeMapper.PARTITION_KEY
-import org.dynadoc.core.AttributeMapper.SORT_KEY
-import org.dynadoc.core.AttributeMapper.VERSION
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.dynamodb.model.*
 
@@ -13,7 +10,8 @@ import software.amazon.awssdk.services.dynamodb.model.*
  */
 class DynamoDbDocumentStore(
     private val client: DynamoDbAsyncClient,
-    private val tableName: String
+    private val tableName: String,
+    private val attributeMapper: AttributeMapper = AttributeMapper()
 ) : DocumentStore {
 
     override suspend fun updateDocuments(updatedDocuments: Iterable<Document>, checkedDocuments: Iterable<Document>) {
@@ -35,7 +33,7 @@ class DynamoDbDocumentStore(
                 TransactWriteItem.builder()
                     .put(Put.builder()
                         .tableName(tableName)
-                        .item(AttributeMapper.fromDocument(document))
+                        .item(attributeMapper.fromDocument(document))
                         .conditionExpression(conditionExpression(document.version))
                         .expressionAttributeValues(expressionAttributeValues(document.version))
                         .build())
@@ -46,7 +44,7 @@ class DynamoDbDocumentStore(
                 TransactWriteItem.builder()
                     .conditionCheck(ConditionCheck.builder()
                         .tableName(tableName)
-                        .key(AttributeMapper.getKeyAttributes(document.id))
+                        .key(attributeMapper.fromDocumentKey(document.id))
                         .conditionExpression(conditionExpression(document.version))
                         .expressionAttributeValues(expressionAttributeValues(document.version))
                         .build())
@@ -72,7 +70,7 @@ class DynamoDbDocumentStore(
                 val attributes: Map<String, AttributeValue> = failure.put()?.item()
                     ?: failure.conditionCheck()?.key()!!
 
-                throw UpdateConflictException(AttributeMapper.parseKey(attributes))
+                throw UpdateConflictException(attributeMapper.toDocumentKey(attributes))
             } else {
                 throw exception
             }
@@ -89,7 +87,7 @@ class DynamoDbDocumentStore(
         val request: BatchGetItemRequest = BatchGetItemRequest.builder()
             .requestItems(mapOf(
                 tableName to KeysAndAttributes.builder()
-                    .keys(idList.distinct().map(AttributeMapper::getKeyAttributes))
+                    .keys(idList.distinct().map(attributeMapper::fromDocumentKey))
                     .consistentRead(true)
                     .build()
                 ))
@@ -101,7 +99,7 @@ class DynamoDbDocumentStore(
             if (responses != null) {
                 val documents: Map<DocumentKey, Document> = responses.values
                     .flatten()
-                    .map(AttributeMapper::toDocument)
+                    .map(attributeMapper::toDocument)
                     .associateBy { it.id }
 
                 val result = idList
@@ -127,7 +125,7 @@ class DynamoDbDocumentStore(
                 val response = client.query(currentPageQuery).await()
 
                 for (item in response.items()) {
-                    emit(AttributeMapper.toDocument(item))
+                    emit(attributeMapper.toDocument(item))
                 }
 
                 if (!response.hasLastEvaluatedKey()) {
@@ -154,7 +152,7 @@ class DynamoDbDocumentStore(
                 val response = client.scan(currentPageQuery).await()
 
                 for (item in response.items()) {
-                    emit(AttributeMapper.toDocument(item))
+                    emit(attributeMapper.toDocument(item))
                 }
 
                 if (!response.hasLastEvaluatedKey()) {

@@ -1,12 +1,6 @@
 package org.dynadoc.core
 
 import org.dynadoc.assertDocument
-import org.dynadoc.core.AttributeMapper.DELETED
-import org.dynadoc.core.AttributeMapper.PARTITION_KEY
-import org.dynadoc.core.AttributeMapper.SORT_KEY
-import org.dynadoc.core.AttributeMapper.VERSION
-import org.dynadoc.core.AttributeMapper.fromDocument
-import org.dynadoc.core.AttributeMapper.toDocument
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -14,10 +8,20 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
 
 private val id: DocumentKey = DocumentKey("PK", "SK")
 
 class AttributeMapperTests {
+    private val now = Instant.parse("2024-01-01T20:00:00.00Z")
+    private val attributeMapper: AttributeMapper = AttributeMapper(
+        Duration.ofSeconds(100),
+        Clock.fixed(now, ZoneId.of("UTC"))
+    )
+
     //region fromDocument
 
     @ParameterizedTest
@@ -33,25 +37,24 @@ class AttributeMapperTests {
         ],
         delimiter = '|')
     fun fromDocument_validJson(json: String, type: AttributeValue.Type) {
-        val attributes: Map<String, AttributeValue> = fromDocument(createDocument(json))
-
-        assertEquals(5, attributes.size)
-        assertEquals("PK", attributes[PARTITION_KEY]?.s())
-        assertEquals("SK", attributes[SORT_KEY]?.s())
-        assertEquals(2, attributes[VERSION]?.n()?.toLong())
-        assertEquals(false, attributes[DELETED]?.bool())
-        assertEquals(type, attributes["key"]?.type())
-    }
-
-    @Test
-    fun fromDocument_nullBody() {
-        val attributes: Map<String, AttributeValue> = fromDocument(createDocument(null))
+        val attributes: Map<String, AttributeValue> = fromDocument(json)
 
         assertEquals(4, attributes.size)
         assertEquals("PK", attributes[PARTITION_KEY]?.s())
         assertEquals("SK", attributes[SORT_KEY]?.s())
         assertEquals(2, attributes[VERSION]?.n()?.toLong())
-        assertEquals(true, attributes[DELETED]?.bool())
+        assertEquals(type, attributes["key"]?.type())
+    }
+
+    @Test
+    fun fromDocument_nullBody() {
+        val attributes: Map<String, AttributeValue> = fromDocument(null)
+
+        assertEquals(4, attributes.size)
+        assertEquals("PK", attributes[PARTITION_KEY]?.s())
+        assertEquals("SK", attributes[SORT_KEY]?.s())
+        assertEquals(2, attributes[VERSION]?.n()?.toLong())
+        assertEquals(1704139300, attributes[DELETED]?.n()?.toLong())
     }
 
     @ParameterizedTest
@@ -65,7 +68,7 @@ class AttributeMapperTests {
     ])
     fun fromDocument_invalidJson(json: String) {
         val exception = assertThrows<IllegalArgumentException> {
-            fromDocument(createDocument(json))
+            fromDocument(json)
         }
 
         assertEquals("The document must be a JSON object.", exception.message)
@@ -80,7 +83,7 @@ class AttributeMapperTests {
     ])
     fun fromDocument_invalidAttributes(attribute: String) {
         val exception = assertThrows<IllegalArgumentException> {
-            fromDocument(createDocument("{\"a\":1,\"$attribute\":2}"))
+            fromDocument("{\"a\":1,\"$attribute\":2}")
         }
 
         assertEquals("The document cannot use the special attribute \"$attribute\".", exception.message)
@@ -101,7 +104,7 @@ class AttributeMapperTests {
         "{ \"key\": { \"sub\": 2 } }",
     ])
     fun toDocument_validJson(json: String) {
-        val attributes: Map<String, AttributeValue> = fromDocument(createDocument(json))
+        val attributes: Map<String, AttributeValue> = fromDocument(json)
 
         val document: Document = toDocument(attributes)
 
@@ -110,7 +113,7 @@ class AttributeMapperTests {
 
     @Test
     fun toDocument_nullBody() {
-        val attributes: Map<String, AttributeValue> = fromDocument(createDocument(null))
+        val attributes: Map<String, AttributeValue> = fromDocument(null)
 
         val document: Document = toDocument(attributes)
 
@@ -121,11 +124,10 @@ class AttributeMapperTests {
     @ValueSource(strings = [
         PARTITION_KEY,
         SORT_KEY,
-        VERSION,
-        DELETED
+        VERSION
     ])
     fun toDocument_missingAttribute(attribute: String) {
-        val attributes: Map<String, AttributeValue> = fromDocument(createDocument("{ \"key\": \"abc\" }"))
+        val attributes: Map<String, AttributeValue> = fromDocument("{ \"key\": \"abc\" }")
 
         val exception = assertThrows<NoSuchElementException> {
             toDocument(attributes - attribute)
@@ -139,6 +141,10 @@ class AttributeMapperTests {
     //region Helper Methods
 
     private fun createDocument(body: String?) = Document(id, body, 1)
+
+    private fun fromDocument(body: String?) = attributeMapper.fromDocument(createDocument(body))
+
+    private fun toDocument(attributes: Map<String, AttributeValue>) = attributeMapper.toDocument(attributes)
 
     //endregion
 }
