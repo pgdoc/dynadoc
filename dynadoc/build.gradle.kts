@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "org.dynadoc"
-version = "1.0-SNAPSHOT"
+version = "1.0.0-SNAPSHOT"
 
 java {
     toolchain {
@@ -40,6 +40,7 @@ publishing {
                 developers {
                     developer {
                         name = "Flavien Charlon"
+                        email = "flavien@charlon.org"
                     }
                 }
                 scm {
@@ -48,9 +49,13 @@ publishing {
                 }
             }
         }
+    }
 
-        register("mavenJava", MavenPublication::class) {
-            from(components["java"])
+    repositories {
+        maven {
+            val releasesRepoUrl = uri(layout.buildDirectory.dir("repos/releases"))
+            val snapshotsRepoUrl = uri(layout.buildDirectory.dir("repos/snapshots"))
+            url = if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl
         }
     }
 }
@@ -81,5 +86,5 @@ tasks.named<Test>("test") {
 }
 
 signing {
-    sign(publishing.publications["mavenJava"])
+    sign(publishing.publications["maven"])
 }

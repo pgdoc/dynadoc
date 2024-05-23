@@ -4,6 +4,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.future.await
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.dynamodb.model.*
+import java.time.Clock
+import java.time.Duration
 
 /**
  * Represents an implementation of the [DocumentStore] interface that relies on DynamoDB for persistence.
@@ -11,8 +13,11 @@ import software.amazon.awssdk.services.dynamodb.model.*
 class DynamoDbDocumentStore(
     private val client: DynamoDbAsyncClient,
     private val tableName: String,
-    private val attributeMapper: AttributeMapper = AttributeMapper()
+    expiration: Duration = Duration.ofDays(30),
+    clock: Clock = Clock.systemUTC()
 ) : DocumentStore {
+
+    private val attributeMapper: AttributeMapper = AttributeMapper(expiration, clock)
 
     override suspend fun updateDocuments(updatedDocuments: Iterable<Document>, checkedDocuments: Iterable<Document>) {
         fun conditionExpression(version: Long) =

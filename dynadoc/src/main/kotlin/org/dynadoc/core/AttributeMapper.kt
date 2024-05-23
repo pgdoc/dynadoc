@@ -16,8 +16,8 @@ const val DELETED = "deleted"
 val systemAttributes: Set<String> = setOf(PARTITION_KEY, SORT_KEY, VERSION, DELETED)
 
 class AttributeMapper(
-    private val expiration: Duration = Duration.ofDays(30),
-    private val clock: Clock = Clock.systemUTC()
+    private val expiration: Duration,
+    private val clock: Clock
 ) {
     private val jsonAttributeConverter: JsonItemAttributeConverter = JsonItemAttributeConverter.create()
     private val jsonNodeParser: ThreadLocal<JsonNodeParser> = ThreadLocal.withInitial {
@@ -64,7 +64,7 @@ class AttributeMapper(
 
         if (document.body == null) {
             val expiration: Instant = clock.instant() + expiration
-            put(DELETED, AttributeValue.fromN((expiration.toEpochMilli() / 1000L).toString()))
+            put(DELETED, AttributeValue.fromN(expiration.epochSecond.toString()))
         }
     }
 

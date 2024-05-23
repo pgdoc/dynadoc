@@ -16,9 +16,9 @@ import java.time.ZoneId
 private val id: DocumentKey = DocumentKey("PK", "SK")
 
 class AttributeMapperTests {
-    private val now = Instant.parse("2024-01-01T20:00:00.00Z")
+    private val now = Instant.parse("2024-01-01T20:00:00Z")
     private val attributeMapper: AttributeMapper = AttributeMapper(
-        Duration.ofSeconds(100),
+        Duration.ofSeconds(150),
         Clock.fixed(now, ZoneId.of("UTC"))
     )
 
@@ -54,7 +54,7 @@ class AttributeMapperTests {
         assertEquals("PK", attributes[PARTITION_KEY]?.s())
         assertEquals("SK", attributes[SORT_KEY]?.s())
         assertEquals(2, attributes[VERSION]?.n()?.toLong())
-        assertEquals(1704139300, attributes[DELETED]?.n()?.toLong())
+        assertEquals(Instant.parse("2024-01-01T20:02:30Z").epochSecond, attributes[DELETED]?.n()?.toLong())
     }
 
     @ParameterizedTest
@@ -101,7 +101,9 @@ class AttributeMapperTests {
         "{ \"key\": false }",
         "{ \"key\": null }",
         "{ \"key\": [ 2, 3 ] }",
-        "{ \"key\": { \"sub\": 2 } }",
+        "{ \"key\": [ 2, \"abc\", { \"sub\": 2 } ] }",
+        "{ \"key\": { \"sub\": 2, \"arr\": [ 2, \"abc\" ] } }",
+        "{ }",
     ])
     fun toDocument_validJson(json: String) {
         val attributes: Map<String, AttributeValue> = fromDocument(json)
