@@ -19,11 +19,13 @@ class AttributeMapper(
     private val expiration: Duration,
     private val clock: Clock
 ) {
-    private val jsonAttributeConverter: JsonItemAttributeConverter = JsonItemAttributeConverter.create()
-    private val jsonNodeParser: ThreadLocal<JsonNodeParser> = ThreadLocal.withInitial {
-        JsonNodeParser.builder()
-            .jsonFactory(JsonNodeParser.DEFAULT_JSON_FACTORY)
-            .build()
+    private companion object {
+        private val jsonAttributeConverter: JsonItemAttributeConverter = JsonItemAttributeConverter.create()
+        private val jsonNodeParser: ThreadLocal<JsonNodeParser> = ThreadLocal.withInitial {
+            JsonNodeParser.builder()
+                .jsonFactory(JsonNodeParser.DEFAULT_JSON_FACTORY)
+                .build()
+        }
     }
 
     fun toDocument(attributes: Map<String, AttributeValue>): Document {
