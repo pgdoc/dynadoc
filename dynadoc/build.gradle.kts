@@ -1,6 +1,6 @@
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-    implementation("software.amazon.awssdk:dynamodb-enhanced:2.25.54")
+    api("software.amazon.awssdk:dynamodb-enhanced:2.25.54")
 
     testImplementation(kotlin("test"))
 

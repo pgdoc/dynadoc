@@ -1,7 +1,6 @@
 package org.dynadoc.serialization
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import org.dynadoc.core.Document
 import org.dynadoc.core.DocumentKey
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -10,18 +9,16 @@ import org.skyscreamer.jsonassert.JSONAssert
 import kotlin.reflect.typeOf
 
 class KotlinJsonSerializerTests {
-    private val serializer: KotlinJsonSerializer = KotlinJsonSerializer(Json)
-
     @Test
     fun serialize_string() {
-        val result: String = serializer.serialize(testObject)
+        val result: String = DefaultJsonSerializer.serialize(testObject)
 
         JSONAssert.assertEquals(testJson, result, true)
     }
 
     @Test
     fun deserialize_string() {
-        val result: TestClass = serializer.deserialize(testJson, typeOf<TestClass>())
+        val result: TestClass = DefaultJsonSerializer.deserialize(testJson, typeOf<TestClass>())
 
         assertEquals(testObject, result)
     }
@@ -34,7 +31,7 @@ class KotlinJsonSerializerTests {
             version = 1
         )
 
-        val result: Document = serializer.toDocument(document)
+        val result: Document = DefaultJsonSerializer.toDocument(document)
 
         JSONAssert.assertEquals(testJson, result.body, true)
     }
@@ -47,7 +44,7 @@ class KotlinJsonSerializerTests {
             version = 1
         )
 
-        val result: JsonEntity<TestClass?> = serializer.fromDocument(document)
+        val result: JsonEntity<TestClass?> = DefaultJsonSerializer.fromDocument(document)
 
         assertEquals(testObject, result.entity)
     }

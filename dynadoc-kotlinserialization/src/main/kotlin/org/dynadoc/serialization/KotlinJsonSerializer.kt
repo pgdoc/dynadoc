@@ -17,3 +17,6 @@ class KotlinJsonSerializer(
     override fun <T : Any> deserialize(json: String, type: KType): T =
         kotlinJson.decodeFromString(serializer(type) as KSerializer<T>, json)
 }
+
+
+val DefaultJsonSerializer = KotlinJsonSerializer(Json)
