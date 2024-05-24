@@ -1,6 +1,6 @@
 allprojects {
     group = "org.dynadoc"
-    version = "1.0.1-SNAPSHOT"
+    version = "1.1.0"
 }
 
 plugins {
