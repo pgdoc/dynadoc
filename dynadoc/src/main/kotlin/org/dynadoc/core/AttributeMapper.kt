@@ -21,11 +21,7 @@ class AttributeMapper(
 ) {
     private companion object {
         private val jsonAttributeConverter: JsonItemAttributeConverter = JsonItemAttributeConverter.create()
-        private val jsonNodeParser: ThreadLocal<JsonNodeParser> = ThreadLocal.withInitial {
-            JsonNodeParser.builder()
-                .jsonFactory(JsonNodeParser.DEFAULT_JSON_FACTORY)
-                .build()
-        }
+        private val jsonNodeParser: ThreadLocal<JsonNodeParser> = ThreadLocal.withInitial { JsonNodeParser.create() }
     }
 
     fun toDocument(attributes: Map<String, AttributeValue>): Document {
@@ -53,7 +49,7 @@ class AttributeMapper(
                 "The document must be a JSON object."
             }
 
-            val specialAttribute: String? = systemAttributes.firstOrNull() { key -> attributesRoot.m().containsKey(key) }
+            val specialAttribute: String? = systemAttributes.firstOrNull { key -> attributesRoot.m().containsKey(key) }
             require(specialAttribute == null) {
                 "The document cannot use the special attribute \"$specialAttribute\"."
             }
