@@ -1,6 +1,11 @@
+plugins {
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
+}
+
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-    implementation("software.amazon.awssdk:dynamodb-enhanced:2.25.54")
+    implementation(project(":dynadoc"))
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
     testImplementation(kotlin("test"))
 
@@ -20,7 +25,7 @@ publishing {
             from(components["java"])
 
             pom {
-                name = "Dynadoc"
+                name = "Dynadoc Kotlin-Serialization"
                 description = "Dynadoc is a Kotlin library for using DynamoDB as a JSON document store."
                 url = "https://github.com/pgdoc/dynadoc"
                 licenses {

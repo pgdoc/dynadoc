@@ -4,4 +4,7 @@ plugins {
 }
 
 rootProject.name = "dynadoc"
-include("dynadoc")
+include(
+    "dynadoc",
+    "dynadoc-kotlinserialization"
+)
