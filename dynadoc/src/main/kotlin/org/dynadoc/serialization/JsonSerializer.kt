@@ -1,6 +1,8 @@
 package org.dynadoc.serialization
 
 import org.dynadoc.core.Document
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 
 interface JsonSerializer {
     /**
@@ -11,7 +13,7 @@ interface JsonSerializer {
     /**
      * Deserializes a JSON string to the specified type.
      */
-    fun <T : Any> deserialize(json: String, clazz: Class<T>): T
+    fun <T : Any> deserialize(json: String, type: KType): T
 }
 
 
@@ -22,12 +24,12 @@ fun JsonSerializer.toDocument(jsonEntity: JsonEntity<Any?>): Document =
         version = jsonEntity.version
     )
 
-fun <T : Any> JsonSerializer.fromDocument(document: Document, clazz: Class<T>): JsonEntity<T?> =
+fun <T : Any> JsonSerializer.fromDocument(document: Document, type: KType): JsonEntity<T?> =
     JsonEntity(
         id = document.id,
-        entity = document.body?.let { deserialize(it, clazz) },
+        entity = document.body?.let { deserialize(it, type) },
         version = document.version
     )
 
 inline fun <reified T : Any> JsonSerializer.fromDocument(document: Document): JsonEntity<T?> =
-    fromDocument(document, T::class.java)
+    fromDocument(document, typeOf<T>())

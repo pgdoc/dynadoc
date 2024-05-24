@@ -3,6 +3,8 @@ package org.dynadoc.serialization
 import kotlinx.coroutines.flow.toList
 import org.dynadoc.core.DocumentKey
 import org.dynadoc.core.DocumentStore
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 
 /**
  * Represents a service object used to retrieve and modify documents represented as [JsonEntity] objects.
@@ -30,18 +32,18 @@ class EntityStore(
     /**
      * Retrieves a document given its ID, represented as a [JsonEntity] object.
      */
-    suspend fun <T : Any> getEntities(ids: Iterable<DocumentKey>, clazz: Class<T>): List<JsonEntity<T?>> {
+    suspend fun <T : Any> getEntities(ids: Iterable<DocumentKey>, type: KType): List<JsonEntity<T?>> {
         val result = documentStore.getDocuments(ids).toList()
-        return result.map { jsonSerializer.fromDocument(it, clazz) }
+        return result.map { jsonSerializer.fromDocument(it, type) }
     }
 }
 
 
 suspend inline fun <reified T : Any> EntityStore.getEntities(ids: Iterable<DocumentKey>): List<JsonEntity<T?>> =
-    getEntities(ids, T::class.java)
+    getEntities(ids, typeOf<T>())
 
 suspend inline fun <reified T : Any> EntityStore.getEntity(id: DocumentKey): JsonEntity<T?> =
-    getEntities(listOf(id), T::class.java)[0]
+    getEntities<T>(listOf(id), typeOf<T>())[0]
 
 suspend fun EntityStore.updateEntities(vararg updatedEntities: JsonEntity<Any?>) =
     updateEntities(
