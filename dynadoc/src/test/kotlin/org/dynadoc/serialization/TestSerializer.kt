@@ -1,27 +1,29 @@
 package org.dynadoc.serialization
 
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
+
 object TestSerializer : JsonSerializer {
     private val regex = Regex("\\{\"string\":\"(?<value>[^\"]*)\"}")
 
     fun jsonFor(value: String) = "{\"string\":\"$value\"}"
 
     override fun serialize(entity: Any): String {
-        if (entity is String) {
-            return jsonFor(entity)
-        } else {
-            error("Type not supported.")
-        }
+        assertEquals(String::class.java, entity.javaClass)
+        return jsonFor(entity as String)
     }
 
-    override fun <T : Any> deserialize(json: String, clazz: Class<T>): T {
-        require(clazz == String::class.java)
+    override fun <T : Any> deserialize(json: String, type: KType): T {
+        assertEquals(typeOf<String>(), type)
 
         val match: MatchResult? = regex.matchEntire(json)
-        require(match != null)
+        assertNotNull(match)
 
-        val result = match.groups["value"]
-        require(result != null)
+        val result = match!!.groups["value"]
+        assertNotNull(result)
 
-        return result.value as T
+        return result!!.value as T
     }
 }

@@ -1,6 +1,7 @@
 package org.dynadoc.serialization
 
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.runBlocking
 import org.dynadoc.assertEntity
@@ -9,9 +10,9 @@ import org.dynadoc.core.Document
 import org.dynadoc.core.DocumentKey
 import org.dynadoc.core.DocumentStore
 import org.dynadoc.serialization.TestSerializer.jsonFor
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
-import kotlin.test.assertEquals
 
 private val ids = (0..9).map { i -> DocumentKey("document_$i", "KEY") }
 private val idsNull = (0..9).map { i -> DocumentKey("document_$i", "NULL") }

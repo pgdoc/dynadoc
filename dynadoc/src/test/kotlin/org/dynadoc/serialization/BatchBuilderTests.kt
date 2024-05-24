@@ -8,9 +8,9 @@ import org.dynadoc.core.Document
 import org.dynadoc.core.DocumentKey
 import org.dynadoc.core.DocumentStore
 import org.dynadoc.serialization.TestSerializer.jsonFor
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import kotlin.test.assertEquals
 
 private val ids = (0..9).map { i -> DocumentKey("document_$i", "KEY") }
 

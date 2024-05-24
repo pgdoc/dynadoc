@@ -1,7 +1,6 @@
 package org.dynadoc.serialization
 
 import org.dynadoc.core.DocumentKey
-import java.lang.IllegalStateException
 
 class BatchBuilder(
     private val store: EntityStore
