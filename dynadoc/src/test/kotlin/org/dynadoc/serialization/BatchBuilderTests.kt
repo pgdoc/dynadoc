@@ -20,6 +20,8 @@ class BatchBuilderTests {
     }
     private val batchBuilder: BatchBuilder = BatchBuilder(EntityStore(documentStore, TestSerializer))
 
+    //region submit
+
     @Test
     fun submit_success() = runBlocking {
         check(ids[0], 0)
@@ -32,6 +34,8 @@ class BatchBuilderTests {
             checked = listOf(Document(ids[0], null, 0))
         )
     }
+
+    //endregion
 
     //region check
 

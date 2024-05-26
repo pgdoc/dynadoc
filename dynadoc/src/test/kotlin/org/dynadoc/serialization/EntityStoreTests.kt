@@ -1,6 +1,7 @@
 package org.dynadoc.serialization
 
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.runBlocking
@@ -12,6 +13,7 @@ import org.dynadoc.core.DocumentStore
 import org.dynadoc.serialization.TestSerializer.jsonFor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
 
 private val ids = (0..9).map { i -> DocumentKey("document_$i", "KEY") }
@@ -120,6 +122,54 @@ class EntityStoreTests {
         val result: JsonEntity<String?> = store.getEntity(idsNull[0])
 
         assertEntity(result, idsNull[0], null, 1)
+    }
+
+    //endregion
+
+    //region transaction
+
+    @Test
+    fun transaction_commit() = runBlocking {
+        store.transaction {
+            check(JsonEntity(ids[0], "abc", 1))
+            modify(JsonEntity(ids[1], "abc", 2))
+        }
+
+        documentStore.assertUpdateDocuments(
+            checked = listOf(Document(ids[0], null, 1)),
+            updated = listOf(Document(ids[1], jsonFor("abc"), 2))
+        )
+    }
+
+    @Test
+    fun transaction_nonLocalReturn() = runBlocking {
+        run {
+            store.transaction {
+                check(JsonEntity(ids[0], "abc", 1))
+                modify(JsonEntity(ids[1], "abc", 2))
+                return@run
+            }
+        }
+
+        coVerify(exactly = 0) {
+            documentStore.updateDocuments(any(), any())
+        }
+    }
+
+    @Test
+    fun transaction_exception() = runBlocking {
+        assertThrows<ArithmeticException>(
+            fun() = runBlocking {
+                store.transaction {
+                    check(JsonEntity(ids[0], "abc", 1))
+                    modify(JsonEntity(ids[1], "abc", 2))
+                    throw ArithmeticException()
+                }
+            })
+
+        coVerify(exactly = 0) {
+            documentStore.updateDocuments(any(), any())
+        }
     }
 
     //endregion

@@ -50,3 +50,9 @@ suspend fun EntityStore.updateEntities(vararg updatedEntities: JsonEntity<Any?>)
         updatedDocuments = updatedEntities.asIterable(),
         checkedDocuments = emptyList()
     )
+
+suspend inline fun EntityStore.transaction(execute: suspend BatchBuilder.() -> Unit) {
+    val batchBuilder: BatchBuilder = BatchBuilder(this)
+    execute(batchBuilder)
+    batchBuilder.submit()
+}
