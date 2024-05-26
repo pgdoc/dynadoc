@@ -17,7 +17,15 @@ data class JsonEntity<out T>(
 )
 
 
-fun <T> JsonEntity<T?>.modify(builder: T?.() -> T?) = copy(entity = builder(entity))
+fun <T, U> JsonEntity<T>.modify(builder: T.() -> U) =
+    JsonEntity(id, builder(entity), version)
 
 fun <T : Any> createEntity(partitionKey: String, sortKey: String, entity: T) =
     JsonEntity(DocumentKey(partitionKey, sortKey), entity, 0)
+
+fun <T : Any> JsonEntity<T?>.ifExists(): JsonEntity<T>? =
+    if (entity == null) {
+        null
+    } else {
+        this as JsonEntity<T>
+    }
