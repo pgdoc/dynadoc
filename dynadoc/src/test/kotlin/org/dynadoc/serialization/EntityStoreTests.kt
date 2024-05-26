@@ -64,7 +64,7 @@ class EntityStoreTests {
     fun updateEntities_check() = runBlocking {
         val document = JsonEntity(ids[0], 5.5f, 1)
 
-        store.updateEntities(emptyList(), listOf(document))
+        store.updateEntities(checkedDocuments = listOf(document))
 
         documentStore.assertUpdateDocuments(
             checked = listOf(Document(ids[0], null, 1))
@@ -74,11 +74,11 @@ class EntityStoreTests {
     @Test
     fun updateEntities_updateAndCheck() = runBlocking {
         store.updateEntities(
-            listOf(
+            updatedDocuments = listOf(
                 JsonEntity(ids[0], "abc", 1),
                 JsonEntity(ids[1], null, 2)
             ),
-            listOf(
+            checkedDocuments = listOf(
                 JsonEntity(ids[2], 5.5f, 3),
                 JsonEntity(ids[3], BigDecimal("21"), 4)
             )

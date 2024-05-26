@@ -6,12 +6,14 @@ allprojects {
 plugins {
     // Apply the org.jetbrains.kotlin.jvm plugin to add support for Kotlin.
     kotlin("jvm") version "1.9.23"
+    id("org.jetbrains.kotlinx.kover") version "0.8.0"
     id("maven-publish")
     id("signing")
 }
 
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
+    apply(plugin = "org.jetbrains.kotlinx.kover")
     // Apply the java-library plugin for API and implementation separation.
     apply(plugin = "java-library")
     apply(plugin = "maven-publish")

@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.dynadoc.assertDocument
 import org.dynadoc.core.DynamoDbDocumentStoreTests.MethodSources.PREFIX
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -36,7 +36,6 @@ private val STRING_100KB = "a".repeat(100 * 1024)
 @Testcontainers
 class DynamoDbDocumentStoreTests {
     private val store: DynamoDbDocumentStore = DynamoDbDocumentStore(client, "tests")
-
     private val partitionKey: String = UUID.randomUUID().toString()
     private val ids: List<DocumentKey> = (0..10).map { i -> DocumentKey("${partitionKey}_$i", "0000") }
 
@@ -198,11 +197,11 @@ class DynamoDbDocumentStoreTests {
         updateDocument(ids[1], JSON_2, 0)
 
         store.updateDocuments(
-            listOf(
+            updatedDocuments = listOf(
                 Document(ids[0], "{\"v\":\"1\"}", 1),
                 Document(ids[2], "{\"v\":\"2\"}", 0)
             ),
-            listOf(
+            checkedDocuments = listOf(
                 Document(ids[1], "{\"v\":\"3\"}", 1),
                 Document(ids[3], "{\"v\":\"4\"}", 0)
             )
@@ -228,8 +227,8 @@ class DynamoDbDocumentStoreTests {
             fun() = runBlocking {
                 if (checkOnly) {
                     store.updateDocuments(
-                        listOf(Document(ids[0], JSON_2, 1)),
-                        listOf(Document(ids[1], JSON_3, 10))
+                        updatedDocuments = listOf(Document(ids[0], JSON_2, 1)),
+                        checkedDocuments = listOf(Document(ids[1], JSON_3, 10))
                     )
                 } else {
                     store.updateDocuments(
@@ -489,8 +488,8 @@ class DynamoDbDocumentStoreTests {
 
     private suspend fun checkDocument(version: Long) =
         store.updateDocuments(
-            listOf(),
-            listOf(Document(ids[0], "{\"ignored\":\"ignored\"}", version))
+            updatedDocuments = emptyList(),
+            checkedDocuments = listOf(Document(ids[0], "{\"ignored\":\"ignored\"}", version))
         )
 
     private fun assertDocuments(actual: List<Document>, expected: List<Document>) {
