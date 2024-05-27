@@ -58,6 +58,10 @@ class DynamoDbDocumentStore(
 
         val elements = (updates + checks).toList();
 
+        if (elements.isEmpty()) {
+            return
+        }
+
         try {
             val write: TransactWriteItemsRequest = TransactWriteItemsRequest.builder()
                 .transactItems(elements)

@@ -35,7 +35,7 @@ class JsonEntityTests {
 
     @Test
     fun ifExists_nonNull() {
-        val entity: JsonEntity<String?> = JsonEntity(id, "abc", 1)
+        val entity: JsonEntity<String?> = JsonEntity<String?>(id, "abc", 1)
 
         val result: JsonEntity<String>? = entity.ifExists()
 
@@ -45,7 +45,7 @@ class JsonEntityTests {
 
     @Test
     fun ifExists_null() {
-        val entity: JsonEntity<String?> = JsonEntity(id, null, 1)
+        val entity: JsonEntity<String?> = JsonEntity<String?>(id, null, 1)
 
         val result = entity.ifExists()
 

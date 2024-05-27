@@ -155,6 +155,32 @@ class BatchBuilderTests {
         )
     }
 
+    @Test
+    fun modify_withMutationToValue() = runBlocking {
+
+        val entity = JsonEntity(ids[0], "abc", 1)
+
+        batchBuilder.modify(entity) { this + "def" }
+        batchBuilder.submit()
+
+        documentStore.assertUpdateDocuments(
+            updated = listOf(Document(ids[0], jsonFor("abcdef"), 1))
+        )
+    }
+
+    @Test
+    fun modify_withMutationToNull() = runBlocking {
+
+        val entity = JsonEntity(ids[0], "abc", 1)
+
+        batchBuilder.modify(entity) { null }
+        batchBuilder.submit()
+
+        documentStore.assertUpdateDocuments(
+            updated = listOf(Document(ids[0], null, 1))
+        )
+    }
+
     //endregion
 
     //region Helper Methods

@@ -103,6 +103,14 @@ class DynamoDbDocumentStoreTests {
         assertDocument(document, ids[0], null, 0)
     }
 
+    @Test
+    fun updateDocuments_noUpdate() = runBlocking {
+        store.updateDocuments(
+            updatedDocuments = emptyList(),
+            checkedDocuments = emptyList()
+        )
+    }
+
     @ParameterizedTest
     @ValueSource(strings = [
         "\"a\"",

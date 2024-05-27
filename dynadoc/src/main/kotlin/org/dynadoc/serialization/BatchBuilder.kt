@@ -70,3 +70,6 @@ class BatchBuilder(
         modifiedDocuments.clear()
     }
 }
+
+
+fun <T, U> BatchBuilder.modify(entity: JsonEntity<T>, builder: T.() -> U) = modify(entity.modify(builder))
