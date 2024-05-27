@@ -5,7 +5,7 @@ plugins {
 dependencies {
     api(project(":dynadoc"))
 
-    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:[1.6.0,)")
 
     testImplementation(kotlin("test"))
 
