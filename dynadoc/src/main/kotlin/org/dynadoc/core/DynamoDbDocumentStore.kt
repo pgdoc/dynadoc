@@ -56,30 +56,31 @@ class DynamoDbDocumentStore(
                     .build()
             }
 
-        val elements = (updates + checks).toList();
+        val writeItems: List<TransactWriteItem> = (updates + checks).toList();
 
-        if (elements.isEmpty()) {
+        if (writeItems.isEmpty()) {
             return
         }
 
         try {
             val write: TransactWriteItemsRequest = TransactWriteItemsRequest.builder()
-                .transactItems(elements)
+                .transactItems(writeItems)
                 .build()
 
             client.transactWriteItems(write).await()
 
         } catch (exception: TransactionCanceledException) {
-            val checkFailureIndex: Int = exception.cancellationReasons()
+            val conditionCheckFailureIndex: Int = exception.cancellationReasons()
                 ?. indexOfFirst { it.code() == "ConditionalCheckFailed" }
                 ?: -1
 
-            if (checkFailureIndex >= 0) {
-                val failure: TransactWriteItem = elements[checkFailureIndex]
-                val attributes: Map<String, AttributeValue> = failure.put()?.item()
-                    ?: failure.conditionCheck()?.key()!!
+            if (conditionCheckFailureIndex >= 0) {
+                val failedItem: TransactWriteItem = writeItems[conditionCheckFailureIndex]
+                val keyAttributes: Map<String, AttributeValue> =
+                    failedItem.put()?.item()
+                    ?: failedItem.conditionCheck().key()
 
-                throw UpdateConflictException(attributeMapper.toDocumentKey(attributes))
+                throw UpdateConflictException(attributeMapper.toDocumentKey(keyAttributes))
             } else {
                 throw exception
             }
