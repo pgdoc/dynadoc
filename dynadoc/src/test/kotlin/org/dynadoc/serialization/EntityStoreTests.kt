@@ -1,5 +1,6 @@
 package org.dynadoc.serialization
 
+import com.github.dockerjava.api.exception.ConflictException
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -10,11 +11,15 @@ import org.dynadoc.assertUpdateDocuments
 import org.dynadoc.core.Document
 import org.dynadoc.core.DocumentKey
 import org.dynadoc.core.DocumentStore
+import org.dynadoc.core.UpdateConflictException
 import org.dynadoc.serialization.TestSerializer.jsonFor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.math.BigDecimal
+import kotlin.test.assertContentEquals
 
 private val ids = (0..9).map { i -> DocumentKey("document_$i", "KEY") }
 private val idsNull = (0..9).map { i -> DocumentKey("document_$i", "NULL") }
@@ -130,11 +135,13 @@ class EntityStoreTests {
 
     @Test
     fun transaction_commit() = runBlocking {
-        store.transaction {
+        val result: String = store.transaction {
             check(JsonEntity(ids[0], "abc", 1))
             modify(JsonEntity(ids[1], "abc", 2))
+            "result"
         }
 
+        assertEquals("result", result)
         documentStore.assertUpdateDocuments(
             checked = listOf(Document(ids[0], null, 1)),
             updated = listOf(Document(ids[1], jsonFor("abc"), 2))
@@ -169,6 +176,29 @@ class EntityStoreTests {
 
         coVerify(exactly = 0) {
             documentStore.updateDocuments(any(), any())
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = [0, 1, 3])
+    fun transaction_retryConflicts(retries: Int) = runBlocking {
+        coEvery {
+            documentStore.updateDocuments(any(), any())
+        } throws UpdateConflictException(ids[0])
+
+        assertThrows<UpdateConflictException>(
+            fun() = runBlocking {
+                store.transaction(retries = retries) {
+                    check(JsonEntity(ids[0], "abc", 1))
+                    modify(JsonEntity(ids[1], "abc", 2))
+                }
+            })
+
+        coVerify(exactly = retries + 1) {
+            documentStore.updateDocuments(
+                updatedDocuments = listOf(Document(ids[1], jsonFor("abc"), 2)),
+                checkedDocuments = listOf(Document(ids[0], null, 1))
+            )
         }
     }
 

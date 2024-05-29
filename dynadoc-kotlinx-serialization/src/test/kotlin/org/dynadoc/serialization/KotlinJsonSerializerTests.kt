@@ -70,4 +70,15 @@ private val testObject = TestClass(
     )
 )
 
-private val testJson = "{\"stringKey\": \"value\", \"numberKey\": 999, \"booleanKey\": true, \"listKey\": [10, 20, 30], \"mapKey\": { \"a\": 1, \"b\": 2 }}"
+private val testJson = """
+    |  {
+    |    "stringKey": "value",
+    |    "numberKey": 999,
+    |    "booleanKey": true,
+    |    "listKey": [10, 20, 30],
+    |    "mapKey": {
+    |      "a": 1,
+    |      "b": 2
+    |    }
+    |  }
+""".trimMargin()

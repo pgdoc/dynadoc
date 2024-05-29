@@ -3,6 +3,7 @@ package org.dynadoc.serialization
 import kotlinx.coroutines.flow.toList
 import org.dynadoc.core.DocumentKey
 import org.dynadoc.core.DocumentStore
+import org.dynadoc.core.UpdateConflictException
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
@@ -48,8 +49,21 @@ suspend inline fun <reified T : Any> EntityStore.getEntity(id: DocumentKey): Jso
 suspend fun EntityStore.updateEntities(vararg updatedEntities: JsonEntity<Any?>) =
     updateEntities(updatedDocuments = updatedEntities.asIterable())
 
-suspend inline fun EntityStore.transaction(execute: BatchBuilder.() -> Unit) {
-    val batchBuilder: BatchBuilder = BatchBuilder(this)
-    execute(batchBuilder)
-    batchBuilder.submit()
+suspend inline fun <T> EntityStore.transaction(retries: Int = 0, execute: BatchBuilder.() -> T): T {
+    var batchBuilder: BatchBuilder = BatchBuilder(this)
+    var retriesLeft: Int = retries
+
+    while (true) {
+        try {
+            val result = execute(batchBuilder)
+            batchBuilder.submit()
+            return result
+        } catch (exception: UpdateConflictException) {
+            batchBuilder = BatchBuilder(this)
+            retriesLeft--
+            if (retriesLeft < 0) {
+                throw exception
+            }
+        }
+    }
 }
