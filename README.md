@@ -166,7 +166,7 @@ The entity to modify should first be read from the data store, either by using i
 Once the entity has been retrieved, it can then be modified by calling the `modify` method. This method returns a new copy of the original entity with the same ID and version, but a modified body. The new entity is then used with `EntityStore::updateEntities` to commit the update.
 
 ```kotlin
-val modifiedEntity = existingEntity.modify { copy(price = price - 1.5) }
+val modifiedEntity = entity.modify { copy(price = price - 1.5) }
 
 entityStore.updateEntities(modifiedEntity)
 ```
@@ -174,6 +174,16 @@ entityStore.updateEntities(modifiedEntity)
 The trailing lambda passed to `existingEntity.modify` must return the new entity that will replace the existing one.
 
 Dynadoc will always make sure no update has been made to the document between the time it was read and the time the update was committed. If a conflicting update has been made during that time, an exception of type `UpdateConflictException` will be thrown at the moment of committing the update.
+
+## Deleting a document
+
+To delete a document, simply set it to null.
+
+```kotlin
+val modifiedEntity = entity.modify { null }
+
+entityStore.updateEntities(modifiedEntity)
+```
 
 ## Advanced document queries
 
@@ -215,7 +225,7 @@ entityStore.transaction {
 
     // Modify the entities
     modify(product) { copy(stockQuantity = stockQuantity - 1) }
-    modify(invoice) { copy(total = total + product.entity.price)}
+    modify(invoice) { copy(total = total + product.entity.price) }
 }
 ```
 
