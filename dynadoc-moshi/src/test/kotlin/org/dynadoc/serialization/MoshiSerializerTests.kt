@@ -1,6 +1,5 @@
 package org.dynadoc.serialization
 
-import kotlinx.serialization.Serializable
 import org.dynadoc.core.Document
 import org.dynadoc.core.DocumentKey
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -8,7 +7,7 @@ import org.junit.jupiter.api.Test
 import org.skyscreamer.jsonassert.JSONAssert
 import kotlin.reflect.typeOf
 
-class KotlinJsonSerializerTests {
+class MoshiSerializerTests {
     @Test
     fun serialize_string() {
         val result: String = DefaultJsonSerializer.serialize(testObject)
@@ -50,7 +49,7 @@ class KotlinJsonSerializerTests {
     }
 }
 
-@Serializable
+
 private data class TestClass(
     val stringKey: String,
     val numberKey: Int,

@@ -6,5 +6,6 @@ plugins {
 rootProject.name = "dynadoc"
 include(
     "dynadoc",
-    "dynadoc-kotlinx-serialization"
+    "dynadoc-kotlinx-serialization",
+    "dynadoc-moshi"
 )
