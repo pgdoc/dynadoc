@@ -1,6 +1,5 @@
 package org.dynadoc.serialization
 
-import com.github.dockerjava.api.exception.ConflictException
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -19,7 +18,6 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import java.math.BigDecimal
-import kotlin.test.assertContentEquals
 
 private val ids = (0..9).map { i -> DocumentKey("document_$i", "KEY") }
 private val idsNull = (0..9).map { i -> DocumentKey("document_$i", "NULL") }
@@ -195,6 +193,28 @@ class EntityStoreTests {
             })
 
         coVerify(exactly = retries + 1) {
+            documentStore.updateDocuments(
+                updatedDocuments = listOf(Document(ids[1], jsonFor("abc"), 2)),
+                checkedDocuments = listOf(Document(ids[0], null, 1))
+            )
+        }
+    }
+
+    @Test
+    fun transaction_submitException() = runBlocking {
+        coEvery {
+            documentStore.updateDocuments(any(), any())
+        } throws IllegalArgumentException()
+
+        assertThrows<IllegalArgumentException>(
+            fun() = runBlocking {
+                store.transaction(retries = 3) {
+                    check(JsonEntity(ids[0], "abc", 1))
+                    modify(JsonEntity(ids[1], "abc", 2))
+                }
+            })
+
+        coVerify(exactly = 1) {
             documentStore.updateDocuments(
                 updatedDocuments = listOf(Document(ids[1], jsonFor("abc"), 2)),
                 checkedDocuments = listOf(Document(ids[0], null, 1))

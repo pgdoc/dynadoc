@@ -39,6 +39,8 @@ class EntityStore(
     }
 }
 
+typealias ShouldRetry = suspend (throwable: Throwable, failureCount: Int) -> Boolean
+
 
 suspend inline fun <reified T : Any> EntityStore.getEntities(ids: Iterable<DocumentKey>): List<JsonEntity<T?>> =
     getEntities(ids, typeOf<T>())
@@ -49,21 +51,28 @@ suspend inline fun <reified T : Any> EntityStore.getEntity(id: DocumentKey): Jso
 suspend fun EntityStore.updateEntities(vararg updatedEntities: JsonEntity<Any?>) =
     updateEntities(updatedDocuments = updatedEntities.asIterable())
 
-suspend inline fun <T> EntityStore.transaction(retries: Int = 0, execute: BatchBuilder.() -> T): T {
-    var batchBuilder: BatchBuilder = BatchBuilder(this)
-    var retriesLeft: Int = retries
+suspend inline fun <T> EntityStore.transaction(noinline shouldRetry: ShouldRetry, execute: BatchBuilder.() -> T): T {
+    var failureCount: Int = 0
 
     while (true) {
+        val batchBuilder = BatchBuilder(this)
+        val result = execute(batchBuilder)
         try {
-            val result = execute(batchBuilder)
             batchBuilder.submit()
             return result
-        } catch (exception: UpdateConflictException) {
-            batchBuilder = BatchBuilder(this)
-            retriesLeft--
-            if (retriesLeft < 0) {
+
+        } catch (exception: Throwable) {
+            failureCount++
+            val retry: Boolean = shouldRetry(exception, failureCount)
+
+            if (!retry) {
                 throw exception
             }
         }
     }
 }
+
+suspend inline fun <T> EntityStore.transaction(retries: Int = 0, execute: BatchBuilder.() -> T): T = transaction(
+    { throwable, failureCount -> throwable is UpdateConflictException && failureCount <= retries },
+    execute
+)
