@@ -13,8 +13,6 @@ dependencies {
     testImplementation("org.skyscreamer:jsonassert:1.5.1")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-
-    kover(project(":dynadoc"))
 }
 
 publishing {

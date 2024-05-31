@@ -17,6 +17,7 @@ class EntityStore(
     /**
      * Updates atomically the body of multiple documents represented as [JsonEntity] objects.
      */
+    @Throws(UpdateConflictException::class)
     suspend fun updateEntities(
         updatedDocuments: Iterable<JsonEntity<Any?>> = emptyList(),
         checkedDocuments: Iterable<JsonEntity<Any?>> = emptyList()

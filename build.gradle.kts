@@ -41,3 +41,9 @@ subprojects {
 repositories {
     mavenCentral()
 }
+
+dependencies {
+    kover(project(":dynadoc"))
+    kover(project(":dynadoc-kotlinx-serialization"))
+    kover(project(":dynadoc-moshi"))
+}

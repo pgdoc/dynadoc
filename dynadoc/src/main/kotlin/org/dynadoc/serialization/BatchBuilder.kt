@@ -1,6 +1,7 @@
 package org.dynadoc.serialization
 
 import org.dynadoc.core.DocumentKey
+import org.dynadoc.core.UpdateConflictException
 
 class BatchBuilder(
     private val store: EntityStore
@@ -63,6 +64,7 @@ class BatchBuilder(
         checkedDocuments += addCheckedDocuments.associateBy { it.id }
     }
 
+    @Throws(UpdateConflictException::class)
     suspend fun submit() {
         store.updateEntities(modifiedDocuments.values, checkedDocuments.values)
 
