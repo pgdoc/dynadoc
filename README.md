@@ -231,6 +231,16 @@ entityStore.transaction {
 
 When the `transaction` scope completes, both documents will be updated together as part of an ACID transaction. If any of the documents have been modified between the time they were read and the time the scope completes, an exception of type `UpdateConflictException` will be thrown, and none of the changes will be committed to the database.
 
+It is possible to automatically retry the transaction in case of conflict by passing a `RetryPolicy`.
+
+```kotlin
+val retryPolicy: RetryPolicy = retry(maxRetries = 3, pause = Duration.ofSeconds(5))
+
+store.transaction(retryPolicy) {
+    // Transaction code
+}
+```
+
 ## License
 
 Copyright 2023 Flavien Charlon
