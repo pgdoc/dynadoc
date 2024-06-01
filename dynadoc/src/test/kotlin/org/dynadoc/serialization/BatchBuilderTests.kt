@@ -12,8 +12,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-private val ids = (0..9).map { i -> DocumentKey("document_$i", "KEY") }
-
 class BatchBuilderTests {
     private val documentStore: DocumentStore = mockk {
         coEvery { updateDocuments(any(), any()) } returns Unit
