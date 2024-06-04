@@ -1,8 +1,6 @@
 package org.dynadoc.core
 
-import software.amazon.awssdk.enhanced.dynamodb.internal.converter.attribute.JsonItemAttributeConverter
-import software.amazon.awssdk.protocols.jsoncore.JsonNode
-import software.amazon.awssdk.protocols.jsoncore.JsonNodeParser
+import software.amazon.awssdk.enhanced.dynamodb.document.EnhancedDocument
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue
 import java.time.Clock
 import java.time.Duration
@@ -19,19 +17,13 @@ class AttributeMapper(
     private val expiration: Duration,
     private val clock: Clock
 ) {
-    private companion object {
-        private val jsonAttributeConverter: JsonItemAttributeConverter = JsonItemAttributeConverter.create()
-        private val jsonNodeParser: ThreadLocal<JsonNodeParser> = ThreadLocal.withInitial { JsonNodeParser.create() }
-    }
-
     fun toDocument(attributes: Map<String, AttributeValue>): Document {
         val body: String? =
             if (attributes[DELETED] != null) {
                 null
             } else {
                 val bodyMap: Map<String, AttributeValue> = attributes.filterKeys { it !in systemAttributes }
-                val json: JsonNode = jsonAttributeConverter.transformTo(AttributeValue.fromM(bodyMap))
-                json.toString()
+                EnhancedDocument.fromAttributeValueMap(bodyMap).toJson()
             }
 
         return Document(
@@ -43,18 +35,14 @@ class AttributeMapper(
 
     fun fromDocument(document: Document): Map<String, AttributeValue> = buildMap {
         if (document.body != null) {
-            val jsonNode: JsonNode = jsonNodeParser.get().parse(document.body)
-            val attributesRoot: AttributeValue = jsonAttributeConverter.transformFrom(jsonNode)
-            require(attributesRoot.type() == AttributeValue.Type.M) {
-                "The document must be a JSON object."
-            }
+            val attributes: Map<String, AttributeValue> = EnhancedDocument.fromJson(document.body).toMap()
 
-            val specialAttribute: String? = systemAttributes.firstOrNull { key -> attributesRoot.m().containsKey(key) }
+            val specialAttribute: String? = systemAttributes.firstOrNull { key -> attributes.containsKey(key) }
             require(specialAttribute == null) {
                 "The document cannot use the special attribute \"$specialAttribute\"."
             }
 
-            putAll(attributesRoot.m())
+            putAll(attributes)
         }
 
         putAll(fromDocumentKey(document.id))

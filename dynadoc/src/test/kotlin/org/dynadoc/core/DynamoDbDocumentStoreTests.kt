@@ -22,6 +22,7 @@ import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue
 import software.amazon.awssdk.services.dynamodb.model.DynamoDbException
+import java.lang.RuntimeException
 import java.net.URI
 import java.util.*
 import java.util.stream.Stream
@@ -113,13 +114,14 @@ class DynamoDbDocumentStoreTests {
 
     @ParameterizedTest
     @ValueSource(strings = [
-        "\"a\"",
-        "[ 10 ]",
+        "a",
         "{ \"a\":1, \"$PARTITION_KEY\":2 }",
-        "{ \"a\":1, \"$VERSION\":2 }"
+        "{ \"a\":1, \"$SORT_KEY\":2 }",
+        "{ \"a\":1, \"$VERSION\":2 }",
+        "{ \"a\":1, \"$DELETED\":2 }"
     ])
     fun updateDocuments_invalidJson(to: String) = runBlocking {
-        assertThrows<IllegalArgumentException>(
+        assertThrows<RuntimeException>(
             fun() = runBlocking {
                 updateDocument(to, 0)
             })

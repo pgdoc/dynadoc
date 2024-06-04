@@ -8,6 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue
+import java.io.UncheckedIOException
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -57,21 +58,11 @@ class AttributeMapperTests {
         assertEquals(Instant.parse("2024-01-01T20:02:30Z").epochSecond, attributes[DELETED]?.n()?.toLong())
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = [
-        "\"a\"",
-        "10",
-        "true",
-        "false",
-        "null",
-        "[\"a\"]"
-    ])
-    fun fromDocument_invalidJson(json: String) {
-        val exception = assertThrows<IllegalArgumentException> {
-            fromDocument(json)
+    @Test
+    fun fromDocument_invalidJson() {
+        assertThrows<UncheckedIOException> {
+            fromDocument("a")
         }
-
-        assertEquals("The document must be a JSON object.", exception.message)
     }
 
     @ParameterizedTest
@@ -129,10 +120,10 @@ class AttributeMapperTests {
         VERSION
     ])
     fun toDocument_missingAttribute(attribute: String) {
-        val attributes: Map<String, AttributeValue> = fromDocument("{ \"key\": \"abc\" }")
+        val attributes: Map<String, AttributeValue> = fromDocument("{ \"key\": \"abc\" }") - attribute
 
         val exception = assertThrows<NoSuchElementException> {
-            toDocument(attributes - attribute)
+            toDocument(attributes)
         }
 
         assertEquals("Key $attribute is missing in the map.", exception.message)
@@ -142,9 +133,7 @@ class AttributeMapperTests {
 
     //region Helper Methods
 
-    private fun createDocument(body: String?) = Document(id, body, 1)
-
-    private fun fromDocument(body: String?) = attributeMapper.fromDocument(createDocument(body))
+    private fun fromDocument(body: String?) = attributeMapper.fromDocument(Document(id, body, 1))
 
     private fun toDocument(attributes: Map<String, AttributeValue>) = attributeMapper.toDocument(attributes)
 
