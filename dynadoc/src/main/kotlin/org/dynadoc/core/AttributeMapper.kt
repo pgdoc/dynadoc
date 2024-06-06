@@ -2,6 +2,8 @@ package org.dynadoc.core
 
 import software.amazon.awssdk.enhanced.dynamodb.document.EnhancedDocument
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue
+import java.io.UncheckedIOException
+import java.lang.IllegalArgumentException
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -35,7 +37,15 @@ class AttributeMapper(
 
     fun fromDocument(document: Document): Map<String, AttributeValue> = buildMap {
         if (document.body != null) {
-            val attributes: Map<String, AttributeValue> = EnhancedDocument.fromJson(document.body).toMap()
+            require(jsonObject.containsMatchIn(document.body)) {
+                "The document must be a valid JSON object."
+            }
+
+            val attributes: Map<String, AttributeValue> = try {
+                EnhancedDocument.fromJson(document.body).toMap()
+            } catch (e: UncheckedIOException) {
+                throw IllegalArgumentException("The document must be a valid JSON object.", e)
+            }
 
             val specialAttribute: String? = systemAttributes.firstOrNull { key -> attributes.containsKey(key) }
             require(specialAttribute == null) {
@@ -63,4 +73,8 @@ class AttributeMapper(
         partitionKey = attributes.getValue(PARTITION_KEY).s(),
         sortKey = attributes.getValue(SORT_KEY).s()
     )
+
+    private companion object {
+        private val jsonObject: Regex = Regex("^\\s*\\{")
+    }
 }

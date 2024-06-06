@@ -114,14 +114,22 @@ class DynamoDbDocumentStoreTests {
 
     @ParameterizedTest
     @ValueSource(strings = [
-        "a",
+        "\"a\"",
+        "10",
+        "true",
+        "false",
+        "null",
+        "[\"a\"]",
         "{ \"a\":1, \"$PARTITION_KEY\":2 }",
         "{ \"a\":1, \"$SORT_KEY\":2 }",
         "{ \"a\":1, \"$VERSION\":2 }",
-        "{ \"a\":1, \"$DELETED\":2 }"
+        "{ \"a\":1, \"$DELETED\":2 }",
+        " } { ",
+        "a",
+        "{"
     ])
     fun updateDocuments_invalidJson(to: String) = runBlocking {
-        assertThrows<RuntimeException>(
+        assertThrows<IllegalArgumentException>(
             fun() = runBlocking {
                 updateDocument(to, 0)
             })

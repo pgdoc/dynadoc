@@ -58,11 +58,24 @@ class AttributeMapperTests {
         assertEquals(Instant.parse("2024-01-01T20:02:30Z").epochSecond, attributes[DELETED]?.n()?.toLong())
     }
 
-    @Test
-    fun fromDocument_invalidJson() {
-        assertThrows<UncheckedIOException> {
-            fromDocument("a")
+    @ParameterizedTest
+    @ValueSource(strings = [
+        "\"a\"",
+        "10",
+        "true",
+        "false",
+        "null",
+        "[\"a\"]",
+        " } { ",
+        "a",
+        "{"
+    ])
+    fun fromDocument_invalidJsonObject(json: String) {
+        val exception = assertThrows<IllegalArgumentException> {
+            fromDocument(json)
         }
+
+        assertEquals("The document must be a valid JSON object.", exception.message)
     }
 
     @ParameterizedTest
@@ -87,6 +100,7 @@ class AttributeMapperTests {
     @ParameterizedTest
     @ValueSource(strings = [
         "{ \"key\": \"abc\" }",
+        " \t \n \r { \"key\": \"abc\" } ",
         "{ \"key\": 999 }",
         "{ \"key\": true }",
         "{ \"key\": false }",
@@ -94,7 +108,7 @@ class AttributeMapperTests {
         "{ \"key\": [ 2, 3 ] }",
         "{ \"key\": [ 2, \"abc\", { \"sub\": 2 } ] }",
         "{ \"key\": { \"sub\": 2, \"arr\": [ 2, \"abc\" ] } }",
-        "{ }",
+        "{ }"
     ])
     fun toDocument_validJson(json: String) {
         val attributes: Map<String, AttributeValue> = fromDocument(json)
