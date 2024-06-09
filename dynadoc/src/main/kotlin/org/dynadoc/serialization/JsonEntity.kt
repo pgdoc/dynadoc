@@ -23,6 +23,7 @@ fun <T, U> JsonEntity<T>.modify(builder: T.() -> U) =
 fun <T : Any> createEntity(partitionKey: String, sortKey: String, entity: T) =
     JsonEntity(DocumentKey(partitionKey, sortKey), entity, 0)
 
+@Suppress("UNCHECKED_CAST")
 fun <T : Any> JsonEntity<T?>.ifExists(): JsonEntity<T>? =
     if (entity == null) {
         null

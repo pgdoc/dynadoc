@@ -14,6 +14,7 @@ class KotlinJsonSerializer(
             serializer(entity.javaClass),
             entity)
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T : Any> deserialize(json: String, type: KType): T =
         kotlinJson.decodeFromString(serializer(type) as KSerializer<T>, json)
 }

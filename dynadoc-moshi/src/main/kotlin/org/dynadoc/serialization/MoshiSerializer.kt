@@ -12,9 +12,11 @@ class MoshiSerializer(
     private val moshi: Moshi
 ) : JsonSerializer {
 
+    @Suppress("UNCHECKED_CAST")
     override fun serialize(entity: Any): String =
         moshi.adapter(entity::class.java as Class<Any>).serializeNulls().toJson(entity)
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T : Any> deserialize(json: String, type: KType): T =
         moshi.adapter(type.jvmErasure.java as Class<T>).fromJson(json) as T
 }

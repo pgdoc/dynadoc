@@ -1,6 +1,8 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 allprojects {
     group = "org.dynadoc"
-    version = "1.3.2"
+    version = "1.3.3"
 }
 
 plugins {
@@ -20,7 +22,13 @@ subprojects {
     apply(plugin = "signing")
 
     kotlin {
-        jvmToolchain(11)
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_1_8
+        }
+    }
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_1_8
     }
 
     repositories {
