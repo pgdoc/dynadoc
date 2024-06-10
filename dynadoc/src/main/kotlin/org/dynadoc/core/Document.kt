@@ -21,7 +21,5 @@ data class DocumentKey(
     val partitionKey: String,
     val sortKey: String
 ) {
-    override fun toString(): String {
-        return "(\"$partitionKey\", \"$sortKey\")"
-    }
+    override fun toString() = "(\"$partitionKey\", \"$sortKey\")"
 }
