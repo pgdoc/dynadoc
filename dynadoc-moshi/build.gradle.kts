@@ -8,8 +8,6 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("io.mockk:mockk:1.13.11")
-    testImplementation("org.testcontainers:testcontainers:1.19.8")
-    testImplementation("org.testcontainers:junit-jupiter:1.19.8")
     testImplementation("org.skyscreamer:jsonassert:1.5.1")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

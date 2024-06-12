@@ -7,5 +7,6 @@ rootProject.name = "org.dynadoc"
 include(
     "dynadoc",
     "dynadoc-kotlinx-serialization",
+    "dynadoc-jackson",
     "dynadoc-moshi"
 )
