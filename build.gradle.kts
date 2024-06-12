@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 allprojects {
     group = "org.dynadoc"
-    version = "1.3.3"
+    version = "1.3.4"
 }
 
 plugins {

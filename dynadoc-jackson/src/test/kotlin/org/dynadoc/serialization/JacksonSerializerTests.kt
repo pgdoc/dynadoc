@@ -9,6 +9,7 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import org.junit.jupiter.params.provider.ValueSource
 import org.skyscreamer.jsonassert.JSONAssert
 import java.io.IOException
 import java.util.stream.Stream
@@ -32,16 +33,24 @@ class JacksonSerializerTests {
         assertEquals(value, result)
     }
 
-    @Test
-    fun deserialize_empty() {
-        val result: JsonStringNullable = DefaultJsonSerializer.deserialize("{ }", typeOf<JsonStringNullable>())
+    @ParameterizedTest
+    @ValueSource(strings = [
+        """ { } """,
+        """ { "key": null } """
+    ])
+    fun deserialize_null(json: String) {
+        val result: JsonStringNullable = DefaultJsonSerializer.deserialize(json, typeOf<JsonStringNullable>())
 
         assertEquals(JsonStringNullable(null), result)
     }
 
-    @Test
-    fun deserialize_default() {
-        val result: JsonStringDefault = DefaultJsonSerializer.deserialize("{ }", typeOf<JsonStringDefault>())
+    @ParameterizedTest
+    @ValueSource(strings = [
+        """ { } """,
+        """ { "key": null } """
+    ])
+    fun deserialize_default(json: String) {
+        val result: JsonStringDefault = DefaultJsonSerializer.deserialize(json, typeOf<JsonStringDefault>())
 
         assertEquals(JsonStringDefault("default"), result)
     }
@@ -154,10 +163,6 @@ class JacksonSerializerTests {
                 Arguments.of(
                     """ { } """,
                     typeOf<JsonStringValue>()
-                ),
-                Arguments.of(
-                    """ { "key": null } """,
-                    typeOf<JsonStringDefault>()
                 ),
             )
         }

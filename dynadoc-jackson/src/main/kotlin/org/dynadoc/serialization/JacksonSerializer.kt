@@ -6,7 +6,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import kotlin.reflect.KType
 import kotlin.reflect.jvm.jvmErasure
 
-class KotlinJsonSerializer(
+class JacksonSerializer(
     private val objectMapper: ObjectMapper
 ) : JsonSerializer {
 
@@ -19,8 +19,8 @@ class KotlinJsonSerializer(
 }
 
 
-val DefaultJsonSerializer = KotlinJsonSerializer(objectMapper =
+val DefaultJsonSerializer = JacksonSerializer(objectMapper =
     jacksonObjectMapper {
         this.configure(KotlinFeature.StrictNullChecks, true)
-        this.configure(KotlinFeature.NullIsSameAsDefault, false)
+        this.configure(KotlinFeature.NullIsSameAsDefault, true)
     })
